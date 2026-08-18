@@ -26,7 +26,7 @@ export function LoginForm() {
   function submit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => router.push(role === 'commuter' ? '/search' : '/dashboard'), 700)
+    setTimeout(() => router.push(role === 'commuter' ? '/search' : '/admin'), 700)
   }
 
   const isPlanner = role === 'planner'
