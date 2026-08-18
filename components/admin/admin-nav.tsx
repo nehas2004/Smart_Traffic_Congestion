@@ -79,11 +79,11 @@ export function AdminNav() {
 
           <div className="flex items-center gap-2 border-l border-[#e8e0d5] pl-4">
             <div className="text-right">
-              <p className="text-xs font-bold text-[#2c2825]">Arshad</p>
-              <p className="text-[10px] text-[#9e9189]">Traffic Ops Lead</p>
+              <p className="text-xs font-bold text-[#2c2825]">City Planner</p>
+              <p className="text-[10px] text-[#9e9189]">Traffic Operations</p>
             </div>
             <div className="flex size-8 items-center justify-center rounded-full bg-[#a67c52] text-xs font-bold text-white shadow-sm">
-              AR
+              CP
             </div>
           </div>
 
