@@ -5,7 +5,6 @@ import { Nav } from '@/components/shared/nav'
 import { Clock, Gauge, AlertTriangle, CheckCircle, ArrowRight, Map } from 'lucide-react'
 
 const FREE_FLOW = 48
-const KEY = '9IjAeUzCf9waJ3H1O3F3e7OprPPecCot'
 
 function CongestionBadge({ speed }: { speed: number }) {
   const ratio = speed / FREE_FLOW
@@ -37,7 +36,19 @@ function RoutesContent() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if(!fromLat || !toLat) return
+    // If no params, try to restore last route from sessionStorage
+    if (!fromLat || !toLat) {
+      const saved = sessionStorage.getItem('last_route_url')
+      if (saved) {
+        router.replace(saved)
+      } else {
+        setLoading(false)
+        setError('No route selected. Go to Plan Route to search.')
+      }
+      return
+    }
+    const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || ''
+    if (!KEY) { setError('TomTom API key not configured.'); setLoading(false); return }
     setLoading(true)
     const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromLat},${fromLon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=2&traffic=true&routeType=fastest&travelMode=car`
     fetch(url).then(r=>r.json()).then(async data => {
