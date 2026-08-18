@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { Waypoints, MapPin, Map, BarChart2, Upload } from 'lucide-react'
 
 const links = [
@@ -13,18 +13,6 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname()
-  const router = useRouter()
-
-  const handleRouteOptions = (e: React.MouseEvent) => {
-    // If clicking "Route Options", restore the last route URL from sessionStorage
-    const saved = typeof window !== 'undefined' ? sessionStorage.getItem('last_route_url') : null
-    if (saved) {
-      e.preventDefault()
-      router.push(saved)
-    }
-    // If no saved route, fall through to /routes (shows empty state with a helpful message)
-  }
-
   return (
     <header style={{
       position: 'sticky', top: 0, zIndex: 50,
@@ -44,21 +32,16 @@ export function Nav() {
         </div>
         <nav style={{ display: 'flex', gap: 4 }}>
           {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href === '/routes' && pathname === '/routes')
+            const active = pathname === href
             return (
-              <Link
-                key={href}
-                href={href}
-                onClick={href === '/routes' ? handleRouteOptions : undefined}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  textDecoration: 'none',
-                  background: active ? '#2c2825' : 'transparent',
-                  color: active ? '#c8a97e' : '#9e9189',
-                  transition: 'all 0.15s',
-                }}
-              >
+              <Link key={href} href={href} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                textDecoration: 'none',
+                background: active ? '#2c2825' : 'transparent',
+                color: active ? '#c8a97e' : '#9e9189',
+                transition: 'all 0.15s',
+              }}>
                 <Icon size={14} />
                 {label}
               </Link>
