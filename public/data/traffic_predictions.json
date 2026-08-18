@@ -1,0 +1,148 @@
+{
+  "data_source": "Real traffic data (user-provided Firebase export)",
+  "total_records_used": 2340,
+  "metrics": {
+    "linear_regression": {
+      "mse": 0.0628,
+      "rmse": 0.2507,
+      "mae": 0.226
+    },
+    "gradient_boosting": {
+      "mse": 0.0062,
+      "rmse": 0.079,
+      "mae": 0.009,
+      "n_estimators": 200
+    },
+    "winner": "Gradient Boosting"
+  },
+  "forecast": [
+    {
+      "time": "08 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "09 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "10 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "11 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "12 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "01 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "02 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "03 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "04 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "05 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "06 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "07 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "08 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "09 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "10 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "11 PM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "12 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "01 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "02 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "03 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "04 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "05 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "06 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    },
+    {
+      "time": "07 AM",
+      "predicted_speed": 48.0,
+      "delay_mins": 0.0
+    }
+  ],
+  "bottlenecks": [
+    {
+      "location": "MC Road Junction (Kothamangalam)",
+      "severity": "High",
+      "delay": 12,
+      "trend": "worsening"
+    }
+  ]
+}
