@@ -3,6 +3,7 @@
 // ── Public-safe Traffic object — FROZEN SHAPE per SHARED_CONTRACT.md ──────────
 export interface TrafficCorridor {
   corridor_id: number
+  city?: string
   corridor_name: string
   timestamp: string
   current_congestion: number

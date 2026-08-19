@@ -1,8 +1,77 @@
 ﻿[
-  {"corridor_id":12,"corridor_name":"Kaloor","timestamp":"2026-08-20T17:30:00","current_congestion":72,"predicted_congestion":91,"severity":"critical","confidence":0.87},
-  {"corridor_id":5,"corridor_name":"MC Road Junction","timestamp":"2026-08-20T17:30:00","current_congestion":85,"predicted_congestion":95,"severity":"critical","confidence":0.94},
-  {"corridor_id":7,"corridor_name":"Aluva NH-85","timestamp":"2026-08-20T17:30:00","current_congestion":58,"predicted_congestion":74,"severity":"high","confidence":0.82},
-  {"corridor_id":3,"corridor_name":"Edapally Junction","timestamp":"2026-08-20T17:30:00","current_congestion":44,"predicted_congestion":51,"severity":"medium","confidence":0.76},
-  {"corridor_id":9,"corridor_name":"Vyttila Mobility Hub","timestamp":"2026-08-20T17:30:00","current_congestion":28,"predicted_congestion":35,"severity":"low","confidence":0.78},
-  {"corridor_id":11,"corridor_name":"Marine Drive","timestamp":"2026-08-20T17:30:00","current_congestion":33,"predicted_congestion":40,"severity":"low","confidence":0.71}
+  {
+    "corridor_id": 101, "city": "Kochi",
+    "corridor_name": "Kaloor Junction", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 72, "predicted_congestion": 91, "severity": "critical", "confidence": 0.87
+  },
+  {
+    "corridor_id": 102, "city": "Kochi",
+    "corridor_name": "Edapally Toll", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 44, "predicted_congestion": 51, "severity": "medium", "confidence": 0.76
+  },
+  {
+    "corridor_id": 103, "city": "Kochi",
+    "corridor_name": "Vyttila Mobility Hub", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 28, "predicted_congestion": 35, "severity": "low", "confidence": 0.78
+  },
+  {
+    "corridor_id": 104, "city": "Kochi",
+    "corridor_name": "Marine Drive", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 33, "predicted_congestion": 40, "severity": "low", "confidence": 0.71
+  },
+  {
+    "corridor_id": 201, "city": "Thrissur",
+    "corridor_name": "Thrissur Round (Sakthan Thampuran)", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 81, "predicted_congestion": 88, "severity": "critical", "confidence": 0.91
+  },
+  {
+    "corridor_id": 202, "city": "Thrissur",
+    "corridor_name": "Poothole Road", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 55, "predicted_congestion": 62, "severity": "high", "confidence": 0.84
+  },
+  {
+    "corridor_id": 203, "city": "Thrissur",
+    "corridor_name": "Ollur Bypass", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 30, "predicted_congestion": 38, "severity": "low", "confidence": 0.72
+  },
+  {
+    "corridor_id": 301, "city": "Thiruvananthapuram",
+    "corridor_name": "Pattom Junction", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 68, "predicted_congestion": 79, "severity": "high", "confidence": 0.88
+  },
+  {
+    "corridor_id": 302, "city": "Thiruvananthapuram",
+    "corridor_name": "Kowdiar – Vellayambalam", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 51, "predicted_congestion": 60, "severity": "high", "confidence": 0.81
+  },
+  {
+    "corridor_id": 303, "city": "Thiruvananthapuram",
+    "corridor_name": "Kesavadasapuram Junction", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 38, "predicted_congestion": 44, "severity": "medium", "confidence": 0.73
+  },
+  {
+    "corridor_id": 401, "city": "Kozhikode",
+    "corridor_name": "Palayam Junction", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 76, "predicted_congestion": 84, "severity": "critical", "confidence": 0.89
+  },
+  {
+    "corridor_id": 402, "city": "Kozhikode",
+    "corridor_name": "Mavoor Road", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 48, "predicted_congestion": 57, "severity": "medium", "confidence": 0.79
+  },
+  {
+    "corridor_id": 403, "city": "Kozhikode",
+    "corridor_name": "Calicut Beach Road", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 22, "predicted_congestion": 26, "severity": "low", "confidence": 0.70
+  },
+  {
+    "corridor_id": 501, "city": "Kollam",
+    "corridor_name": "Chinnakada Junction", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 59, "predicted_congestion": 72, "severity": "high", "confidence": 0.83
+  },
+  {
+    "corridor_id": 502, "city": "Kollam",
+    "corridor_name": "Polayathode Bridge", "timestamp": "2026-08-20T17:30:00",
+    "current_congestion": 41, "predicted_congestion": 48, "severity": "medium", "confidence": 0.75
+  }
 ]
