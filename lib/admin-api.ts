@@ -8,6 +8,81 @@ import {
   DecisionAction,
 } from '@/types/traffic'
 
+export type TrafficDataSource = 'api' | 'mock'
+
+export interface TrafficDataResult<T> {
+  data: T
+  source: TrafficDataSource
+  error?: string
+}
+
+export interface TrafficForecastPoint {
+  hour: string
+  predicted_congestion: number
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function isTrafficData(value: unknown): value is SharedTrafficData[] {
+  return Array.isArray(value) && value.every((item) => (
+    isRecord(item) &&
+    typeof item.corridor_id === 'string' &&
+    typeof item.corridor_name === 'string' &&
+    typeof item.timestamp === 'string' &&
+    typeof item.current_congestion === 'number' &&
+    typeof item.predicted_congestion === 'number' &&
+    typeof item.severity === 'string' &&
+    typeof item.confidence === 'number'
+  ))
+}
+
+function isForecastData(value: unknown): value is TrafficForecastPoint[] {
+  return Array.isArray(value) && value.every((item) => (
+    isRecord(item) &&
+    typeof item.hour === 'string' &&
+    typeof item.predicted_congestion === 'number'
+  ))
+}
+
+function isBottleneckData(value: unknown): value is BottleneckItem[] {
+  return Array.isArray(value) && value.every((item) => (
+    isRecord(item) &&
+    typeof item.id === 'string' &&
+    typeof item.corridor_id === 'string' &&
+    typeof item.corridor_name === 'string' &&
+    typeof item.window === 'string' &&
+    typeof item.days === 'string' &&
+    typeof item.severity === 'string' &&
+    typeof item.avg_delay_mins === 'number' &&
+    typeof item.trend_percent === 'number' &&
+    typeof item.confidence === 'number'
+  ))
+}
+
+async function requestData<T>(
+  url: string,
+  validate: (value: unknown) => value is T,
+  fallback: T,
+): Promise<TrafficDataResult<T>> {
+  try {
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) {
+      return { data: fallback, source: 'mock', error: `Traffic service returned HTTP ${response.status}.` }
+    }
+
+    const payload: unknown = await response.json()
+    if (!validate(payload)) {
+      return { data: fallback, source: 'mock', error: 'Traffic service returned an invalid response.' }
+    }
+
+    return { data: payload, source: 'api' }
+  } catch {
+    return { data: fallback, source: 'mock', error: 'Traffic service is unavailable.' }
+  }
+}
+
 // Initial fallback mock data compliant with the shared contract
 export const MOCK_CORRIDORS: CorridorDetail[] = [
   {
@@ -247,14 +322,12 @@ let localDecisions: DecisionRecord[] = [
 // SHARED API CLIENT CONSUMER FUNCTIONS
 // ==========================================
 
+export async function getCurrentTrafficData(): Promise<TrafficDataResult<SharedTrafficData[]>> {
+  return requestData('/traffic/current', isTrafficData, MOCK_CORRIDORS)
+}
+
 export async function fetchCurrentTraffic(): Promise<SharedTrafficData[]> {
-  try {
-    const res = await fetch('/traffic/current', { cache: 'no-store' })
-    if (res.ok) {
-      return await res.json()
-    }
-  } catch {}
-  return MOCK_CORRIDORS
+  return (await getCurrentTrafficData()).data
 }
 
 export async function fetchCorridorDetails(id: string): Promise<CorridorDetail | undefined> {
@@ -267,16 +340,7 @@ export async function fetchCorridorDetails(id: string): Promise<CorridorDetail |
   return MOCK_CORRIDORS.find((c) => c.corridor_id === id) || MOCK_CORRIDORS[0]
 }
 
-export async function fetchTrafficForecast(corridorId?: string): Promise<{ hour: string; predicted_congestion: number; lower: number; upper: number; actual?: number }[]> {
-  try {
-    const url = corridorId ? `/traffic/forecast?corridor_id=${corridorId}` : '/traffic/forecast'
-    const res = await fetch(url, { cache: 'no-store' })
-    if (res.ok) {
-      return await res.json()
-    }
-  } catch {}
-
-  // Fallback 12-hour forecast based on gradient boosting trend
+function createMockForecast(): TrafficForecastPoint[] {
   return Array.from({ length: 12 }, (_, idx) => {
     const hourNum = (new Date().getHours() + idx) % 24
     const isPeak = (hourNum >= 8 && hourNum <= 10) || (hourNum >= 17 && hourNum <= 20)
@@ -285,21 +349,25 @@ export async function fetchTrafficForecast(corridorId?: string): Promise<{ hour:
     return {
       hour: `${String(hourNum).padStart(2, '0')}:00`,
       predicted_congestion: predicted,
-      lower: Math.max(0, predicted - 7),
-      upper: Math.min(100, predicted + 8),
-      actual: idx === 0 ? Math.round(predicted - 2) : undefined,
     }
   })
 }
 
+export async function getTrafficForecastData(corridorId?: string): Promise<TrafficDataResult<TrafficForecastPoint[]>> {
+  const url = corridorId ? `/traffic/forecast?corridor_id=${encodeURIComponent(corridorId)}` : '/traffic/forecast'
+  return requestData(url, isForecastData, createMockForecast())
+}
+
+export async function fetchTrafficForecast(corridorId?: string): Promise<TrafficForecastPoint[]> {
+  return (await getTrafficForecastData(corridorId)).data
+}
+
+export async function getBottleneckData(): Promise<TrafficDataResult<BottleneckItem[]>> {
+  return requestData('/bottlenecks', isBottleneckData, MOCK_BOTTLENECKS)
+}
+
 export async function fetchBottlenecks(): Promise<BottleneckItem[]> {
-  try {
-    const res = await fetch('/bottlenecks', { cache: 'no-store' })
-    if (res.ok) {
-      return await res.json()
-    }
-  } catch {}
-  return MOCK_BOTTLENECKS
+  return (await getBottleneckData()).data
 }
 
 export async function fetchEventImpact(eventId: string): Promise<EventImpact | undefined> {
