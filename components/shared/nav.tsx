@@ -1,14 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Waypoints, MapPin, Map, BarChart2, Upload, ShieldAlert } from 'lucide-react'
+import { Waypoints, MapPin, Map, BarChart2, ShieldAlert } from 'lucide-react'
 
 const links = [
   { href: '/search',    label: 'Plan Route',   icon: MapPin },
   { href: '/routes',    label: 'Route Options', icon: Waypoints },
   { href: '/map',       label: 'Live Map',      icon: Map },
   { href: '/dashboard', label: 'Analytics',     icon: BarChart2 },
-  { href: '/data',      label: 'Data Upload',   icon: Upload },
 ]
 
 export function Nav() {

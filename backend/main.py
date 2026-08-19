@@ -11,6 +11,7 @@ load_dotenv()
 from app.db import engine, Base
 from app.api.recommendations import router as rec_router
 from app.api.admin_decisions import router as decisions_router
+from app.api.copilot import router as copilot_router
 from app.api.traffic import router as traffic_router
 
 # Create all tables on startup (SQLite auto-creates the file)
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(rec_router)
 app.include_router(decisions_router)
 app.include_router(traffic_router)
+app.include_router(copilot_router)
 
 
 @app.get("/health")

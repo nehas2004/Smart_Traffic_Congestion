@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { AdminKpiGrid } from '@/components/admin/admin-kpi-grid'
 import { DecisionSupportCard } from '@/components/admin/decision-support-card'
 import { AdminBottleneckTable } from '@/components/admin/admin-bottleneck-table'
+import { ActiveIncidentsPanel } from '@/components/admin/active-incidents-panel'
 import {
   fetchCurrentTraffic,
   fetchBottlenecks,
@@ -18,24 +19,40 @@ import {
   DecisionRecord,
   DecisionAction,
 } from '@/types/traffic'
-import { ShieldCheck, RefreshCw, Zap, ArrowUpRight, History } from 'lucide-react'
+import { ShieldCheck, RefreshCw, Zap, ArrowUpRight, History, Flame } from 'lucide-react'
 import Link from 'next/link'
+import { ReportIncidentModal } from '@/components/admin/report-incident-modal'
 
 export default function AdminOverviewPage() {
   const [corridors, setCorridors] = useState<SharedTrafficData[]>([])
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [decisions, setDecisions] = useState<DecisionRecord[]>([])
+  const [activeSectorName, setActiveSectorName] = useState('10.0601°, 76.6214°')
+  const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0601, lon: 76.6214 })
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  async function loadData() {
+  async function loadData(sector?: { lat: number; lon: number; name: string }) {
     setIsRefreshing(true)
     try {
+      let sec = sector
+      if (!sec) {
+        try {
+          const s = localStorage.getItem('planner_active_city')
+          if (s) sec = JSON.parse(s)
+        } catch (_) {}
+      }
+      if (sec) {
+        setActiveSectorName(sec.name)
+        setActiveCoords({ lat: sec.lat, lon: sec.lon })
+      }
+
       const [cData, bData, rData, dData] = await Promise.all([
-        fetchCurrentTraffic(),
-        fetchBottlenecks(),
-        fetchRecommendations(),
+        fetchCurrentTraffic(sec),
+        fetchBottlenecks(sec),
+        fetchRecommendations(sec),
         fetchDecisionHistory(),
       ])
       setCorridors(cData)
@@ -50,6 +67,23 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     loadData()
+
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        loadData(e.detail)
+      }
+    }
+
+    const onIncidentReported = () => {
+      loadData()
+    }
+
+    window.addEventListener('planner_city_changed', onCityChange)
+    window.addEventListener('incident_reported', onIncidentReported)
+    return () => {
+      window.removeEventListener('planner_city_changed', onCityChange)
+      window.removeEventListener('incident_reported', onIncidentReported)
+    }
   }, [])
 
   async function handleDecisionAction(
@@ -69,7 +103,7 @@ export default function AdminOverviewPage() {
       corridor_id: targetRec.corridor_id,
       corridor_name: targetRec.corridor_name,
       action: action,
-      operator: 'Arshad (Admin)',
+      operator: 'City Traffic Controller',
       reason_or_notes: params?.notes,
       modified_parameters: {
         custom_timing_seconds: params?.timingAdjustment,
@@ -91,19 +125,28 @@ export default function AdminOverviewPage() {
             <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
               Executive Traffic Ops Dashboard
             </h1>
-            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-              Operational Mode
+            <span className="rounded-md bg-blue-100 px-2.5 py-0.5 text-xs font-mono font-bold text-blue-900">
+              10km Grid: {activeSectorName}
             </span>
           </div>
           <p className="mt-1 text-sm text-[#9e9189]">
-            Real-time congestion surveillance, ML-driven decision support & control overrides
+            Live congestion telemetry & AI decision support within 10km radius
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.02]"
+          >
+            <Flame className="size-3.5 fill-white" />
+            Report Event Disruption
+          </button>
+
+          <button
+            type="button"
+            onClick={() => loadData()}
             disabled={isRefreshing}
             className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-sm transition-all hover:bg-[#faf8f5]"
           >
@@ -161,12 +204,29 @@ export default function AdminOverviewPage() {
         </div>
       </div>
 
+      {/* ACTIVE REPORTED LOCAL DISRUPTIONS PANEL */}
+      <ActiveIncidentsPanel onIncidentCancelled={() => loadData()} />
+
       {/* BOTTLENECK SURVEILLANCE & RECENT DECISIONS SPLIT */}
-      <div className="space-y-6">
-        <AdminBottleneckTable bottlenecks={bottlenecks} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 rounded-3xl border border-[#e8e0d5] bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-extrabold text-[#2c2825]">Active Congestion Bottlenecks</h2>
+              <p className="text-xs text-[#9e9189]">Corridors experiencing speed degradation & queue formation</p>
+            </div>
+            <Link
+              href="/admin/traffic"
+              className="flex items-center gap-1 text-xs font-bold text-[#a67c52] hover:underline"
+            >
+              View on map <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+          <AdminBottleneckTable bottlenecks={bottlenecks} />
+        </div>
 
         {/* RECENT DECISIONS SNIPPET */}
-        <div className="rounded-2xl border border-[#e8e0d5] bg-white p-5 shadow-sm">
+        <div className="rounded-3xl border border-[#e8e0d5] bg-white p-6 shadow-sm h-fit">
           <div className="flex items-center justify-between border-b border-[#f0ece7] pb-4 mb-4">
             <div className="flex items-center gap-2">
               <History className="size-4 text-[#a67c52]" />
@@ -178,12 +238,12 @@ export default function AdminOverviewPage() {
               href="/admin/decisions"
               className="flex items-center gap-1 text-xs font-bold text-[#a67c52] hover:text-[#2c2825]"
             >
-              View Full History <ArrowUpRight className="size-3.5" />
+              Full History <ArrowUpRight className="size-3.5" />
             </Link>
           </div>
 
           <div className="divide-y divide-[#f0ece7]">
-            {decisions.slice(0, 3).map((d) => (
+            {decisions.slice(0, 5).map((d) => (
               <div key={d.id} className="py-3 flex items-center justify-between text-xs">
                 <div>
                   <span className="font-bold text-[#2c2825]">{d.corridor_name}</span>
@@ -202,6 +262,15 @@ export default function AdminOverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Report Incident Modal */}
+      <ReportIncidentModal
+        isOpen={isReportModalOpen}
+        defaultLat={activeCoords.lat}
+        defaultLon={activeCoords.lon}
+        onClose={() => setIsReportModalOpen(false)}
+        onIncidentReported={() => loadData()}
+      />
     </main>
   )
 }

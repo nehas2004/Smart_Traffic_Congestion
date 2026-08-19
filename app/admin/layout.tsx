@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminNav } from '@/components/admin/admin-nav'
+import { AICopilotDrawer } from '@/components/admin/ai-copilot-drawer'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ShieldAlert } from 'lucide-react'
 
@@ -104,6 +105,7 @@ export default function AdminLayout({
     <div className="min-h-screen bg-[#faf8f5] text-[#2c2825] font-sans antialiased">
       <AdminNav />
       {children}
+      <AICopilotDrawer />
     </div>
   )
 }
