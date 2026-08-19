@@ -1,14 +1,13 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Waypoints, MapPin, Map, BarChart2, Upload } from 'lucide-react'
+import { Waypoints, MapPin, Map, BarChart2, ShieldAlert } from 'lucide-react'
 
 const links = [
   { href: '/search',    label: 'Plan Route',   icon: MapPin },
   { href: '/routes',    label: 'Route Options', icon: Waypoints },
   { href: '/map',       label: 'Live Map',      icon: Map },
   { href: '/dashboard', label: 'Analytics',     icon: BarChart2 },
-  { href: '/data',      label: 'Data Upload',   icon: Upload },
 ]
 
 export function Nav() {
@@ -30,24 +29,71 @@ export function Nav() {
             Flowcast
           </span>
         </div>
-        <nav style={{ display: 'flex', gap: 4 }}>
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
-            return (
-              <Link key={href} href={href} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                textDecoration: 'none',
-                background: active ? '#2c2825' : 'transparent',
-                color: active ? '#c8a97e' : '#9e9189',
-                transition: 'all 0.15s',
-              }}>
-                <Icon size={14} />
-                {label}
-              </Link>
-            )
-          })}
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <nav style={{ display: 'flex', gap: 4 }}>
+            {links.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href
+              return (
+                <Link key={href} href={href} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none',
+                  background: active ? '#2c2825' : 'transparent',
+                  color: active ? '#c8a97e' : '#9e9189',
+                  transition: 'all 0.15s',
+                }}>
+                  <Icon size={14} />
+                  {label}
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* ── Separator ── */}
+          <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
+
+          {/* ── Public Info group ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2,
+            background: '#f5f2ee', border: '1px solid #e8e0d5',
+            borderRadius: 10, padding: '4px 6px' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#c8a97e',
+              padding: '0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Public
+            </span>
+            {[
+              { href: '/public',          label: 'Home' },
+              { href: '/public/traffic',  label: 'Traffic' },
+              { href: '/public/forecast', label: 'Forecast' },
+            ].map(({ href, label }) => {
+              const active = pathname === href
+              return (
+                <Link key={href} href={href} style={{
+                  padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  textDecoration: 'none',
+                  background: active ? '#2c2825' : 'transparent',
+                  color: active ? '#c8a97e' : '#6b6259',
+                  transition: 'all 0.15s',
+                }}>
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* ── Separator ── */}
+          <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
+
+          <Link href="/admin" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+            textDecoration: 'none',
+            background: '#f5f2ee', border: '1px solid #e8e0d5',
+            color: '#2c2825', transition: 'all 0.15s',
+          }}>
+            <ShieldAlert size={14} color="#a67c52" />
+            City Planner Portal
+          </Link>
+        </div>
       </div>
     </header>
   )
