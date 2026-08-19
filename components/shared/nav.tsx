@@ -49,7 +49,41 @@ export function Nav() {
               )
             })}
           </nav>
+
+          {/* ── Separator ── */}
           <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
+
+          {/* ── Public Info group ── */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2,
+            background: '#f5f2ee', border: '1px solid #e8e0d5',
+            borderRadius: 10, padding: '4px 6px' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#c8a97e',
+              padding: '0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Public
+            </span>
+            {[
+              { href: '/public',          label: 'Home' },
+              { href: '/public/traffic',  label: 'Traffic' },
+              { href: '/public/forecast', label: 'Forecast' },
+            ].map(({ href, label }) => {
+              const active = pathname === href
+              return (
+                <Link key={href} href={href} style={{
+                  padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                  textDecoration: 'none',
+                  background: active ? '#2c2825' : 'transparent',
+                  color: active ? '#c8a97e' : '#6b6259',
+                  transition: 'all 0.15s',
+                }}>
+                  {label}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* ── Separator ── */}
+          <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
+
           <Link href="/admin" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
