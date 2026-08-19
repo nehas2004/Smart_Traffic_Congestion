@@ -11,13 +11,17 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 
 @router.get("", response_model=APIEnvelope)
-def get_recommendation():
+def get_recommendation(
+    lat: float = 10.0601,
+    lon: float = 76.6214,
+    corridor_name: str | None = None,
+):
     """
     Runs the full pipeline and returns a validated recommendation.
     If the LLM fails or output is invalid, returns RECOMMENDATION_UNAVAILABLE.
     The LLM output is NEVER passed through without Pydantic validation.
     """
-    rec = svc.run_pipeline()
+    rec = svc.run_pipeline(lat=lat, lon=lon, corridor_name=corridor_name)
     if rec is None:
         return APIEnvelope(
             success=False,

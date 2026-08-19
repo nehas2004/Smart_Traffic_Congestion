@@ -8,37 +8,44 @@ export async function GET(req: Request) {
 
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
 
+  const cityName = searchParams.get('city') || searchParams.get('name') || undefined
+
   // First try backend FastAPI recommendation endpoint
   try {
-    const backendRes = await fetch('http://localhost:8000/recommendations', { cache: 'no-store' })
+    const backendUrl = `http://localhost:8000/recommendations?lat=${centerLat}&lon=${centerLon}${cityName ? `&corridor_name=${encodeURIComponent(cityName)}` : ''}`
+    const backendRes = await fetch(backendUrl, { cache: 'no-store' })
     if (backendRes.ok) {
       const envelope = await backendRes.json()
       if (envelope.success && envelope.data) {
         const d = envelope.data
+        const confNum = d.confidence === 'high' ? 0.95 : d.confidence === 'medium' ? 0.75 : 0.55
+        const priorityVal: 'high' | 'medium' | 'low' = d.confidence === 'high' ? 'high' : d.confidence === 'medium' ? 'medium' : 'low'
+        const sevVal: SeverityLevel = (d.severity === 'severe' || d.severity === 'heavy' || d.severity === 'moderate' || d.severity === 'low') ? d.severity : 'severe'
+
         const backendRec: TrafficRecommendation = {
-          id: d.rec_id || `rec-01`,
-          corridor_id: d.location_id || 'corr-01',
-          corridor_name: `Congested Node (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°)`,
-          created_at: new Date().toISOString(),
-          priority: (d.priority || 'high').toLowerCase() as 'high' | 'medium' | 'low',
-          title: d.action || `Adaptive Signal Phase Extension (+30s)`,
-          description: d.reasoning || `Surge in live sensor telemetry at (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°). Allocate +30s green time to drain queue.`,
+          id: d.id || d.rec_id || `rec-ai-01`,
+          corridor_id: d.corridor_id || d.location_id || 'corr-01',
+          corridor_name: d.corridor_name || `Congested Node (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°)`,
+          created_at: d.generated_at || new Date().toISOString(),
+          priority: priorityVal,
+          title: d.action || d.title || `Adaptive Signal Phase Extension (+30s)`,
+          description: d.reason ? `${d.reason} ${d.expected_effect ? `(${d.expected_effect})` : ''}` : d.description || d.reasoning || `Surge in live telemetry.`,
           action_type: 'signal_retiming',
-          expected_delay_reduction_mins: d.expected_delay_reduction_mins || 12.5,
-          confidence: d.confidence || 0.94,
+          expected_delay_reduction_mins: d.expected_delay_reduction_mins || 11.5,
+          confidence: confNum,
           current_congestion: d.current_congestion || 78,
           predicted_congestion: d.predicted_congestion || 89,
-          severity: 'severe',
+          severity: sevVal,
           bottleneck: {
-            id: 'bn-01',
-            corridor_id: 'corr-01',
-            corridor_name: `Congested Node (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°)`,
-            window: 'Live 10km Window',
+            id: `bn-${d.id || 'ai-01'}`,
+            corridor_id: d.corridor_id || 'corr-01',
+            corridor_name: d.corridor_name || `Congested Node (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°)`,
+            window: 'Live AI Model Telemetry',
             days: 'Active',
-            severity: 'severe',
+            severity: sevVal,
             avg_delay_mins: 15,
             trend_percent: 8,
-            confidence: 0.94,
+            confidence: confNum,
             coordinates: [centerLat, centerLon],
           },
         }
