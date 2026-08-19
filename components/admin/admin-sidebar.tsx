@@ -17,10 +17,10 @@ import {
   ArrowUpRight,
   Menu,
   X,
-  Radio,
-  User,
+  Flame,
 } from 'lucide-react'
 import { SectorSelectorModal, SectorPoint } from './sector-selector-modal'
+import { ReportIncidentModal } from './report-incident-modal'
 import { signOutUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
@@ -39,13 +39,12 @@ export function AdminSidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [activeSector, setActiveSector] = useState<SectorPoint | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [timeStr, setTimeStr] = useState<string>('')
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
   // Load stored collapse state and active sector on mount
   useEffect(() => {
-    setMounted(true)
     try {
       const savedCollapse = localStorage.getItem('flowcast_admin_sidebar_collapsed')
       if (savedCollapse !== null) {
@@ -125,9 +124,7 @@ export function AdminSidebar() {
       try {
         localStorage.removeItem('flowcast_auth_user')
       } catch (_) {}
-      // Clear URL state and replace route
       router.replace('/')
-      // Backup reload to clean all React / memory states
       setTimeout(() => {
         window.location.href = '/'
       }, 100)
@@ -163,6 +160,15 @@ export function AdminSidebar() {
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs"
+            title="Report Congestion / Event"
+          >
+            <Flame className="size-3 fill-white" />
+            <span className="hidden sm:inline">Report</span>
+          </button>
+          <button
+            type="button"
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-1.5 rounded-lg border border-blue-600/30 bg-blue-50/80 px-2.5 py-1 text-xs font-bold text-blue-950"
           >
@@ -183,10 +189,8 @@ export function AdminSidebar() {
       {/* ── Collapsible Sidebar Container ── */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#e8e0d5] bg-[#faf8f5] transition-all duration-300 ease-in-out lg:static lg:z-30 ${
-          // Mobile state
           isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         } ${
-          // Desktop collapsed state
           isCollapsed ? 'lg:w-[72px]' : 'lg:w-[268px]'
         } w-[268px]`}
       >
@@ -242,8 +246,9 @@ export function AdminSidebar() {
           </button>
         </div>
 
-        {/* ── 10KM Surveillance Coordinate Sector Badge ── */}
-        <div className="px-3 pt-3 pb-1">
+        {/* ── 10KM Sector & Report Incident Actions ── */}
+        <div className="px-3 pt-3 pb-1 space-y-2">
+          {/* 10km Grid Center Pill */}
           {(!isCollapsed || isMobileOpen) ? (
             <button
               type="button"
@@ -274,9 +279,31 @@ export function AdminSidebar() {
               type="button"
               onClick={() => setIsModalOpen(true)}
               className="flex size-10 w-full items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-700 shadow-2xs transition hover:bg-blue-100"
-              title={`10km Grid Center: ${activeSector ? `${activeSector.lat.toFixed(4)}°, ${activeSector.lon.toFixed(4)}°` : '10.0601°, 76.6214°'} (Click to change)`}
+              title={`10km Grid Center: ${activeSector ? `${activeSector.lat.toFixed(4)}°, ${activeSector.lon.toFixed(4)}°` : '10.0601°, 76.6214°'}`}
             >
               <MapPin className="size-4" />
+            </button>
+          )}
+
+          {/* Report Incident / Event Button */}
+          {(!isCollapsed || isMobileOpen) ? (
+            <button
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-amber-600/15 transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.01]"
+              title="Report Temple Fest, Accident, Concert, or Road Hazard"
+            >
+              <Flame className="size-3.5 fill-white" />
+              <span>Report Congestion / Event</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsReportModalOpen(true)}
+              className="flex size-10 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-sm transition hover:scale-105"
+              title="Report Congestion / Event"
+            >
+              <Flame className="size-4 fill-white" />
             </button>
           )}
         </div>
@@ -387,7 +414,6 @@ export function AdminSidebar() {
         <div className="shrink-0 border-t border-[#e8e0d5] bg-white p-2.5">
           {(!isCollapsed || isMobileOpen) ? (
             <div className="flex items-center justify-between gap-2 rounded-xl p-1.5 transition-colors">
-              {/* User Avatar + Details */}
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] border border-[#443e39] text-xs font-black text-[#c8a97e] shadow-2xs">
                   CP
@@ -402,7 +428,6 @@ export function AdminSidebar() {
                 </div>
               </div>
 
-              {/* Logout Button */}
               <button
                 type="button"
                 onClick={handleLogout}
@@ -443,6 +468,14 @@ export function AdminSidebar() {
         currentSector={activeSector}
         onClose={() => setIsModalOpen(false)}
         onSelectSector={handleSelectSector}
+      />
+
+      {/* ── Report Incident / Event Modal ── */}
+      <ReportIncidentModal
+        isOpen={isReportModalOpen}
+        defaultLat={activeSector?.lat || 10.0601}
+        defaultLon={activeSector?.lon || 76.6214}
+        onClose={() => setIsReportModalOpen(false)}
       />
     </>
   )

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AdminSidebar } from '@/components/admin/admin-sidebar'
+import { AICopilotDrawer } from '@/components/admin/ai-copilot-drawer'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ShieldAlert } from 'lucide-react'
 
@@ -106,6 +107,7 @@ export default function AdminLayout({
       <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden transition-all duration-300">
         {children}
       </div>
+      <AICopilotDrawer />
     </div>
   )
 }
