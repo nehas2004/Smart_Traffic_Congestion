@@ -291,7 +291,7 @@ export async function fetchTrafficForecast(corridorId?: string): Promise<{ hour:
     if (res.ok) {
       return await res.json()
     }
-  } catch { }
+  } catch {}
 
   // Fallback 12-hour forecast based on gradient boosting trend
   return Array.from({ length: 12 }, (_, idx) => {
@@ -326,7 +326,7 @@ export async function fetchEventImpact(eventId: string): Promise<EventImpact | u
     if (res.ok) {
       return await res.json()
     }
-  } catch { }
+  } catch {}
   return MOCK_EVENT_IMPACTS.find((e) => e.event_id === eventId) || MOCK_EVENT_IMPACTS[0]
 }
 
@@ -384,9 +384,33 @@ export async function submitDecision(payload: {
       localDecisions = [data.record || newRecord, ...localDecisions]
       return { success: true, record: data.record || newRecord }
     }
-  } catch { }
+  } catch {}
 
   // Save to local in-memory array
   localDecisions = [newRecord, ...localDecisions]
   return { success: true, record: newRecord }
+}
+
+export async function fetchReportedIncidents(sector?: { lat: number; lon: number }): Promise<any[]> {
+  try {
+    const url = sector ? `/api/incidents?lat=${sector.lat}&lon=${sector.lon}&radiusKm=20` : '/api/incidents'
+    const res = await fetch(url, { cache: 'no-store' })
+    if (res.ok) {
+      return await res.json()
+    }
+  } catch {}
+  return []
+}
+
+export async function cancelReportedIncident(incidentId: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/incidents?id=${incidentId}`, {
+      method: 'DELETE',
+    })
+    if (res.ok) {
+      window.dispatchEvent(new CustomEvent('incident_resolved', { detail: { id: incidentId } }))
+      return true
+    }
+  } catch {}
+  return false
 }
