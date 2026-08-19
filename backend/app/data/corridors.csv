@@ -1,0 +1,7 @@
+corridor_id,corridor_name,latitude,longitude,road_type,free_flow_speed_kmph,segment_length_m
+koth-001,MC Road Junction,10.0601,76.6214,arterial,48,820
+koth-002,Muvattupuzha Road Approach,10.0548,76.6281,arterial,50,1100
+koth-003,College Road Corridor,10.0663,76.6159,collector,38,640
+koth-004,Central Market Approach,10.0582,76.6338,collector,35,560
+koth-005,Bypass Ring North,10.0714,76.6246,arterial,55,1350
+koth-006,Industrial Estate Link Road,10.0497,76.6126,local,30,460

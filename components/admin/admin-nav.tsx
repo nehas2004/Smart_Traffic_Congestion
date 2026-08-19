@@ -13,6 +13,8 @@ import {
   ChevronDown,
   AlertTriangle,
   Flame,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SectorSelectorModal, SectorPoint } from './sector-selector-modal'
@@ -21,6 +23,9 @@ import { ReportIncidentModal } from './report-incident-modal'
 const navItems = [
   { href: '/admin', label: 'Admin Overview', icon: LayoutDashboard },
   { href: '/admin/traffic', label: 'Congestion Map', icon: Map },
+  { href: '/admin/forecast', label: 'Forecast', icon: TrendingUp },
+  { href: '/admin/bottlenecks', label: 'Bottlenecks', icon: AlertTriangle },
+  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/decisions', label: 'Decision History', icon: History },
   { href: '/admin/recommendations', label: 'AI Recommendations', icon: Sparkles },
 ]
