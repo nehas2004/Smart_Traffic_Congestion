@@ -64,14 +64,27 @@ export function TrafficMapView({
   const polylinesRef = useRef<any[]>([])
   const markersRef = useRef<any[]>([])
   const recMarkersRef = useRef<any[]>([])
+  const radiusCircleRef = useRef<any>(null)
   const searchDebounceRef = useRef<any>(null)
 
-  const [currentCityName, setCurrentCityName] = useState<string>('Kothamangalam Grid')
+  const [currentCityName, setCurrentCityName] = useState<string>('Kothamangalam (10km Sector)')
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([10.0601, 76.6214])
   const [corridors, setCorridors] = useState<CorridorDetail[]>(initialCorridors)
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>(initialBottlenecks)
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>(initialRecommendations)
   const [showRecommendations, setShowRecommendations] = useState(true)
+
+  // Listen to city changes from the Global City Selector Modal
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        const { lat, lon, name } = e.detail
+        handleSelectLocation(lat, lon, name)
+      }
+    }
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
+  }, [])
 
   const [activeCorridor, setActiveCorridor] = useState<CorridorDetail | null>(
     initialCorridors.find((c) => c.corridor_id === selectedCorridorId) || initialCorridors[0] || null
@@ -422,6 +435,25 @@ export function TrafficMapView({
         heatLayerRef.current = null
       }
 
+      // Draw 10km Radius Surveillance Boundary Circle
+      if (radiusCircleRef.current) {
+        try { map.removeLayer(radiusCircleRef.current) } catch (_) {}
+        radiusCircleRef.current = null
+      }
+      const radiusCircle = L.circle(currentCenter, {
+        radius: 10000,
+        color: '#2563eb',
+        weight: 2,
+        dashArray: '6, 8',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.05,
+      }).addTo(map)
+      radiusCircle.bindTooltip(`<b>10 km Surveillance Sector</b><br/>${currentCityName}`, {
+        permanent: false,
+        direction: 'center',
+      })
+      radiusCircleRef.current = radiusCircle
+
       const heatPoints: [number, number, number][] = []
 
       // Corridors
@@ -456,7 +488,9 @@ export function TrafficMapView({
           })
 
           polyline.bindTooltip(
-            `<strong>${corr.corridor_name}</strong><br/>Congestion: ${corr.current_congestion}% · ${corr.severity.toUpperCase()}`,
+            `<strong>Lat: ${corr.coordinates[0][0].toFixed(4)}°, Lon: ${corr.coordinates[0][1].toFixed(4)}°</strong><br/>` +
+            `Speed: ${corr.current_speed_kmh} km/h (Free Flow: ${corr.free_flow_speed_kmh} km/h)<br/>` +
+            `Congestion: ${corr.current_congestion}% · ${corr.severity.toUpperCase()}`,
             { direction: 'top', className: 'map-custom-tooltip' }
           )
 
@@ -513,11 +547,11 @@ export function TrafficMapView({
           const marker = L.marker(bn.coordinates, { icon: customIcon }).addTo(map)
           marker.bindPopup(`
             <div style="font-family: sans-serif; font-size: 12px; color: #2c2825; padding: 4px; min-width: 170px;">
-              <div style="font-size: 11px; font-weight: 700; color: #9e9189; text-transform: uppercase;">HOTSPOT ALERT</div>
-              <b style="font-size: 13px; color: #2c2825;">${bn.corridor_name}</b><br/>
+              <div style="font-size: 11px; font-weight: 700; color: #9e9189; text-transform: uppercase;">HOTSPOT COORDINATES</div>
+              <b style="font-size: 13px; color: #2c2825;">${bn.coordinates[0].toFixed(4)}° N, ${bn.coordinates[1].toFixed(4)}° E</b><br/>
               <div style="margin-top: 4px;">
                 <span style="color: #dc2626; font-weight: bold;">+${bn.avg_delay_mins} min delay</span><br/>
-                <span style="color: #6b625b;">Window: ${bn.window}</span><br/>
+                <span style="color: #6b625b;">Severity: ${bn.severity.toUpperCase()}</span><br/>
                 <span style="color: #9e9189;">Confidence: ${(bn.confidence * 100).toFixed(0)}%</span>
               </div>
             </div>

@@ -26,16 +26,26 @@ export default function AdminOverviewPage() {
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [decisions, setDecisions] = useState<DecisionRecord[]>([])
+  const [activeSectorName, setActiveSectorName] = useState('10.0601°, 76.6214°')
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  async function loadData() {
+  async function loadData(sector?: { lat: number; lon: number; name: string }) {
     setIsRefreshing(true)
     try {
+      let sec = sector
+      if (!sec) {
+        try {
+          const s = localStorage.getItem('planner_active_city')
+          if (s) sec = JSON.parse(s)
+        } catch (_) {}
+      }
+      if (sec) setActiveSectorName(sec.name)
+
       const [cData, bData, rData, dData] = await Promise.all([
-        fetchCurrentTraffic(),
-        fetchBottlenecks(),
-        fetchRecommendations(),
+        fetchCurrentTraffic(sec),
+        fetchBottlenecks(sec),
+        fetchRecommendations(sec),
         fetchDecisionHistory(),
       ])
       setCorridors(cData)
@@ -50,6 +60,14 @@ export default function AdminOverviewPage() {
 
   useEffect(() => {
     loadData()
+
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        loadData(e.detail)
+      }
+    }
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
   }, [])
 
   async function handleDecisionAction(
@@ -91,19 +109,19 @@ export default function AdminOverviewPage() {
             <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
               Executive Traffic Ops Dashboard
             </h1>
-            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-              Operational Mode
+            <span className="rounded-md bg-blue-100 px-2.5 py-0.5 text-xs font-mono font-bold text-blue-900">
+              10km Grid: {activeSectorName}
             </span>
           </div>
           <p className="mt-1 text-sm text-[#9e9189]">
-            Real-time congestion surveillance, ML-driven decision support & control overrides
+            Live congestion telemetry & AI decision support within 10km radius
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => loadData()}
             disabled={isRefreshing}
             className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-sm transition-all hover:bg-[#faf8f5]"
           >
