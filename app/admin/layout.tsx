@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { AdminNav } from '@/components/admin/admin-nav'
+import { AdminSidebar } from '@/components/admin/admin-sidebar'
 import { supabase } from '@/lib/supabase'
 import { Loader2, ShieldAlert } from 'lucide-react'
 
@@ -101,9 +101,11 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-[#faf8f5] text-[#2c2825] font-sans antialiased">
-      <AdminNav />
-      {children}
+    <div className="flex min-h-screen w-full bg-[#faf8f5] text-[#2c2825] font-sans antialiased">
+      <AdminSidebar />
+      <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden transition-all duration-300">
+        {children}
+      </div>
     </div>
   )
 }
