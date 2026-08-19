@@ -50,21 +50,27 @@ _pending: dict[str, RecommendationWithId] = {}
 # To use real endpoints: replace the return value with an HTTP call to
 # Shadeed's /traffic/forecast and Sankhana's /events/{id}/impact.
 
-def _fetch_traffic_forecast() -> dict:
+def _fetch_traffic_forecast(lat: float = 10.0601, lon: float = 76.6214, corridor_name: Optional[str] = None) -> dict:
     """
     Fetches real-time ML traffic prediction from trained Gradient Boosting & LSTM models.
     """
+    if not corridor_name:
+        if abs(lat - 10.0601) < 0.01 and abs(lon - 76.6214) < 0.01:
+            corridor_name = "MC Road Junction (Kothamangalam)"
+        else:
+            corridor_name = f"Corridor Sector ({lat:.4f}°, {lon:.4f}°)"
+
     try:
         from .realtime_traffic_predictor import RealTimeTrafficPredictor
         predictor = RealTimeTrafficPredictor()
-        res = predictor.predict(lat=10.0601, lon=76.6214)
+        res = predictor.predict(lat=lat, lon=lon)
         preds = res.get("predictions_15min_ahead", {})
         gb_min = preds.get("gradient_boosting_min", 11.5)
         risk = res.get("risk_level", "MODERATE DELAY")
         
         return {
             "corridor_id": 1,
-            "corridor_name": "MC Road Junction (Kothamangalam)",
+            "corridor_name": corridor_name,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "current_congestion": int(res.get("traffic_live", {}).get("current_speed", 24)),
             "predicted_congestion": int(min(98, max(20, gb_min * 6.5))),
@@ -75,7 +81,7 @@ def _fetch_traffic_forecast() -> dict:
         logger.warning("Using mock traffic forecast fallback: %s", e)
         return {
             "corridor_id": 1,
-            "corridor_name": "MC Road Junction (Kothamangalam)",
+            "corridor_name": corridor_name,
             "timestamp": datetime.utcnow().isoformat() + "Z",
             "current_congestion": 78,
             "predicted_congestion": 89,
@@ -246,12 +252,12 @@ def _call_llm(ctx: RecommendationContext) -> Optional[RecommendationOutput]:
 
 # ── Public pipeline entry point ───────────────────────────────────────────────
 
-def run_pipeline() -> Optional[RecommendationWithId]:
+def run_pipeline(lat: float = 10.0601, lon: float = 76.6214, corridor_name: Optional[str] = None) -> Optional[RecommendationWithId]:
     """
     Full pipeline: fetch upstream data → build context → call LLM → validate.
     Returns a RecommendationWithId on success, None on any failure.
     """
-    traffic = _fetch_traffic_forecast()
+    traffic = _fetch_traffic_forecast(lat=lat, lon=lon, corridor_name=corridor_name)
     event = _fetch_event_impact()
     top_factors = _derive_top_factors(traffic, event)
     ctx = build_context(traffic, event, top_factors)
