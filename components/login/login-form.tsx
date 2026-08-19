@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Car, Building2, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 
 // Palette
 const C = {
@@ -22,11 +23,93 @@ export function LoginForm() {
   const [role, setRole]                 = useState<'commuter' | 'planner'>('commuter')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading]           = useState(false)
+  const [isSignUp, setIsSignUp]         = useState(false)
+  const [successMsg, setSuccessMsg]     = useState<string | null>(null)
+  const [error, setError]               = useState<string | null>(
+    supabase 
+      ? null 
+      : 'Supabase is not configured. Please replace the placeholder values in .env.local with your actual Supabase URL and Anon Key.'
+  )
 
-  function submit(e: React.FormEvent) {
+  const toggleMode = () => {
+    setIsSignUp(s => !s)
+    setError(null)
+    setSuccessMsg(null)
+  }
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => router.push(role === 'commuter' ? '/search' : '/dashboard'), 700)
+    setError(null)
+    setSuccessMsg(null)
+
+    if (!supabase) {
+      setError('Supabase is not configured. Please replace the placeholder values in .env.local with your actual Supabase URL and Anon Key.')
+      setLoading(false)
+      return
+    }
+
+    const formData = new FormData(e.currentTarget)
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
+
+    try {
+      if (isSignUp) {
+        // Register User
+        const { data, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              role: role,
+            },
+          },
+        })
+
+        if (authError) {
+          setError(authError.message)
+          setLoading(false)
+          return
+        }
+
+        if (data.session) {
+          // If auto-confirm is enabled and we get a session immediately
+          router.push(role === 'commuter' ? '/search' : '/dashboard')
+        } else {
+          setSuccessMsg('Account created successfully! Please check your email to verify and activate your account.')
+          setLoading(false)
+        }
+      } else {
+        // Sign In
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (authError) {
+          setError(authError.message)
+          setLoading(false)
+          return
+        }
+
+        // Verify role alignment
+        const userRole = data.user?.user_metadata?.role
+        if (userRole && userRole !== role) {
+          // Sign out immediately to prevent saving session for incorrect role
+          await supabase.auth.signOut()
+          setError('Access denied.')
+          setLoading(false)
+          return
+        }
+
+        // Check user role from metadata or default to form state role
+        const finalRole = userRole || role
+        router.push(finalRole === 'commuter' ? '/search' : '/dashboard')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'An unexpected error occurred.')
+      setLoading(false)
+    }
   }
 
   const isPlanner = role === 'planner'
@@ -37,12 +120,40 @@ export function LoginForm() {
       {/* Heading */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         <h2 style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-0.5px', color: C.text, margin: 0 }}>
-          Sign in
+          {isSignUp ? 'Create account' : 'Sign in'}
         </h2>
         <p style={{ fontSize: '14px', color: C.muted, margin: 0 }}>
-          Welcome back. Choose your role to continue.
+          {isSignUp ? 'Choose your role and register below.' : 'Welcome back. Choose your role to continue.'}
         </p>
       </div>
+
+      {error && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: '8px',
+          backgroundColor: '#fdf0ed',
+          border: '1px solid #f5c2b7',
+          color: '#c53030',
+          fontSize: '13px',
+          lineHeight: '1.4',
+        }}>
+          {error}
+        </div>
+      )}
+
+      {successMsg && (
+        <div style={{
+          padding: '12px 16px',
+          borderRadius: '8px',
+          backgroundColor: '#edfaf1',
+          border: '1px solid #c2f5d0',
+          color: '#22543d',
+          fontSize: '13px',
+          lineHeight: '1.4',
+        }}>
+          {successMsg}
+        </div>
+      )}
 
       {/* Role switcher */}
       <div style={{
@@ -94,10 +205,10 @@ export function LoginForm() {
           </label>
           <input
             id="email"
+            name="email"
             type="email"
             required
             autoComplete="email"
-            defaultValue={isPlanner ? 'planner@cityofmetro.gov' : 'you@example.com'}
             placeholder="you@example.com"
             style={{
               height: '44px',
@@ -123,17 +234,19 @@ export function LoginForm() {
             <label htmlFor="password" style={{ fontSize: '13px', fontWeight: 500, color: C.text }}>
               Password
             </label>
-            <button type="button" style={{ fontSize: '12px', color: C.accent, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>
-              Forgot password?
-            </button>
+            {!isSignUp && (
+              <button type="button" style={{ fontSize: '12px', color: C.accent, fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer' }}>
+                Forgot password?
+              </button>
+            )}
           </div>
           <div style={{ position: 'relative' }}>
             <input
               id="password"
+              name="password"
               type={showPassword ? 'text' : 'password'}
               required
               autoComplete="current-password"
-              defaultValue="demo-access"
               style={{
                 height: '44px',
                 width: '100%',
@@ -203,18 +316,36 @@ export function LoginForm() {
         {loading ? (
           <>
             <Loader2 style={{ width: '16px', height: '16px', animation: 'spin 1s linear infinite' }} />
-            Signing in...
+            {isSignUp ? 'Creating account...' : 'Signing in...'}
           </>
         ) : (
           <>
-            Enter {isPlanner ? 'Planner' : 'Commuter'} Dashboard
+            {isSignUp ? 'Register' : `Enter ${isPlanner ? 'Planner' : 'Commuter'} Dashboard`}
             <ArrowRight style={{ width: '16px', height: '16px' }} />
           </>
         )}
       </button>
 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+        <button
+          type="button"
+          onClick={toggleMode}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: C.accent,
+            fontSize: '13px',
+            fontWeight: 500,
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
+        </button>
+      </div>
+
       <p style={{ textAlign: 'center', fontSize: '11px', color: C.muted, margin: 0 }}>
-        Demo mode &mdash; any credentials will work
+        Secure authentication powered by Supabase
       </p>
 
     </form>
