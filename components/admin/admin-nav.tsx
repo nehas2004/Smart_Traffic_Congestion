@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Map, History, ShieldAlert, ArrowLeft, Radio, TrendingUp, AlertTriangle, BarChart3 } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, BarChart3, History, LayoutDashboard, Map, Radio, ShieldAlert, Sparkles, TrendingUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/admin/bottlenecks', label: 'Bottlenecks', icon: AlertTriangle },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/admin/decisions', label: 'Decision History', icon: History },
+  { href: '/admin/recommendations', label: 'AI Recommendations', icon: Sparkles },
 ]
 
 export function AdminNav() {

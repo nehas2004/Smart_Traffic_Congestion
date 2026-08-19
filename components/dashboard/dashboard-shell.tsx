@@ -17,33 +17,41 @@ function LiveMapWidget() {
     const initMap = (L: any) => {
       if (mapRef.current || !containerRef.current) return
 
-      const map = L.map(containerRef.current, {
-        center: [10.0601, 76.6214],
-        zoom: 13,
-        zoomControl: true,
-      })
-      mapRef.current = map
+      try {
+        if ((containerRef.current as any)._leaflet_id) {
+          delete (containerRef.current as any)._leaflet_id
+        }
 
-      // TomTom raster map tiles
-      L.tileLayer(
-        `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
-        { attribution: '© <a href="https://www.tomtom.com">TomTom</a>', maxZoom: 22 }
-      ).addTo(map)
+        const map = L.map(containerRef.current, {
+          center: [10.0601, 76.6214],
+          zoom: 13,
+          zoomControl: true,
+        })
+        mapRef.current = map
 
-      // TomTom traffic flow overlay
-      L.tileLayer(
-        `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
-        { opacity: 0.7, maxZoom: 22 }
-      ).addTo(map)
+        // TomTom raster map tiles
+        L.tileLayer(
+          `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
+          { attribution: '© <a href="https://www.tomtom.com">TomTom</a>', maxZoom: 22 }
+        ).addTo(map)
 
-      // Pin center
-      const icon = L.divIcon({
-        html: `<div style="background:#c8a97e;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
-        className: '', iconAnchor: [6, 6],
-      })
-      L.marker([10.0601, 76.6214], { icon })
-        .bindPopup('<b>Kothamangalam</b><br/>Traffic monitoring area')
-        .addTo(map)
+        // TomTom traffic flow overlay
+        L.tileLayer(
+          `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
+          { opacity: 0.7, maxZoom: 22 }
+        ).addTo(map)
+
+        // Pin center
+        const icon = L.divIcon({
+          html: `<div style="background:#c8a97e;width:12px;height:12px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+          className: '', iconAnchor: [6, 6],
+        })
+        L.marker([10.0601, 76.6214], { icon })
+          .bindPopup('<b>Kothamangalam</b><br/>Traffic monitoring area')
+          .addTo(map)
+      } catch (err) {
+        console.warn('LiveMapWidget initMap error:', err)
+      }
     }
 
     const load = () => {
@@ -65,7 +73,15 @@ function LiveMapWidget() {
     }
 
     load()
-    return () => { mapRef.current?.remove(); mapRef.current = null }
+    return () => {
+      if (mapRef.current) {
+        try { mapRef.current.remove() } catch (_) {}
+        mapRef.current = null
+      }
+      if (containerRef.current && (containerRef.current as any)._leaflet_id) {
+        delete (containerRef.current as any)._leaflet_id
+      }
+    }
   }, [])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
