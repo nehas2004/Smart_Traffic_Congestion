@@ -74,7 +74,7 @@ export function LoginForm() {
 
         if (data.session) {
           // If auto-confirm is enabled and we get a session immediately
-          router.push(role === 'commuter' ? '/search' : '/dashboard')
+          router.push(role === 'commuter' ? '/search' : '/admin')
         } else {
           setSuccessMsg('Account created successfully! Please check your email to verify and activate your account.')
           setLoading(false)
@@ -104,7 +104,7 @@ export function LoginForm() {
 
         // Check user role from metadata or default to form state role
         const finalRole = userRole || role
-        router.push(finalRole === 'commuter' ? '/search' : '/dashboard')
+        router.push(finalRole === 'commuter' ? '/search' : '/admin')
       }
     } catch (err: any) {
       setError(err?.message || 'An unexpected error occurred.')
