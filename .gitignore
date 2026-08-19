@@ -16,3 +16,12 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+
+# Python ignores
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Setup script contains real API keys — share directly, not via git
+setup-env.ps1

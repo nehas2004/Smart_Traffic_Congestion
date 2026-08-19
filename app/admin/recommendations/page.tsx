@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { Nav } from '@/components/shared/nav'
 import { RecommendationCard, RecommendationData } from '@/components/admin/RecommendationCard'
 import { RefreshCw } from 'lucide-react'
 
@@ -45,7 +44,6 @@ export default function RecommendationsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f5' }}>
-      <Nav />
       <main style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px 80px' }}>
         {/* Page header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>

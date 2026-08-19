@@ -10,11 +10,57 @@ const FREE_FLOW = 48
 // This is the most reliable way to persist state in Next.js without a global store
 let _cachedParams: { fromLat: string, fromLon: string, toLat: string, toLon: string, fromName: string, toName: string } | null = null
 
-function CongestionBadge({ speed }: { speed: number }) {
+const BOTTLENECK_LOCATIONS = [
+  { name: 'MC Road Junction (Kothamangalam)', lat: 10.0601, lon: 76.6214, delay: 14, severity: 'Severe' },
+  { name: 'Aluva-Munnar Highway (NH 85)', lat: 10.0650, lon: 76.6280, delay: 9, severity: 'Heavy' },
+  { name: 'Market Feeder & College Road', lat: 10.0620, lon: 76.6220, delay: 6, severity: 'Moderate' },
+]
+
+function getHotspotsForRoute(route: any) {
+  const points = route?.legs?.[0]?.points || []
+  const sections = route?.sections || route?.legs?.[0]?.sections || []
+  const hotspots: { name: string; delay: number; severity: string }[] = []
+
+  // Check TomTom sections
+  sections.forEach((sec: any) => {
+    if (sec.sectionType === 'TRAFFIC' || sec.simpleCategory === 'JAM' || sec.delayInSeconds > 60) {
+      const delayMin = Math.round((sec.delayInSeconds || 120) / 60)
+      hotspots.push({
+        name: sec.simpleCategory ? `Traffic Jam (${sec.simpleCategory})` : 'Congested Road Segment',
+        delay: delayMin,
+        severity: delayMin > 8 ? 'Severe' : 'Moderate',
+      })
+    }
+  })
+
+  // Match against known monitored junction bottlenecks along route points
+  if (points.length > 0) {
+    BOTTLENECK_LOCATIONS.forEach((bn) => {
+      const passesNear = points.some((p: any) => {
+        const dLat = Math.abs(p.latitude - bn.lat)
+        const dLon = Math.abs(p.longitude - bn.lon)
+        return dLat < 0.03 && dLon < 0.03
+      })
+      if (passesNear && !hotspots.some((h) => h.name.includes(bn.name))) {
+        hotspots.push({ name: bn.name, delay: bn.delay, severity: bn.severity })
+      }
+    })
+  }
+
+  return hotspots
+}
+
+function CongestionBadge({ speed, delay }: { speed: number; delay?: number }) {
+  if (delay && delay >= 8) {
+    return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#991b1b' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Severe Traffic (+{delay}m)</span>
+  }
+  if (delay && delay >= 2) {
+    return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#854d0e' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Moderate Delay (+{delay}m)</span>
+  }
   const ratio = speed / FREE_FLOW
-  if (ratio >= 0.8) return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#15803d' }}><CheckCircle size={11} style={{ marginRight: 4, display: 'inline' }} />Free Flow</span>
-  if (ratio >= 0.5) return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#854d0e' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Moderate</span>
-  return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#991b1b' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Likely Congested</span>
+  if (ratio >= 0.85) return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#15803d' }}><CheckCircle size={11} style={{ marginRight: 4, display: 'inline' }} />Free Flow</span>
+  if (ratio >= 0.6) return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fef9c3', color: '#854d0e' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Moderate Delay</span>
+  return <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#fee2e2', color: '#991b1b' }}><AlertTriangle size={11} style={{ marginRight: 4, display: 'inline' }} />Severe Congestion</span>
 }
 
 function RoutesContent() {
@@ -65,7 +111,7 @@ function RoutesContent() {
     setLoading(true)
     setError('')
     const { fromLat, fromLon, toLat, toLon } = activeParams
-    const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromLat},${fromLon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=2&traffic=true&routeType=fastest&travelMode=car`
+    const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromLat},${fromLon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=2&traffic=true&routeType=fastest&travelMode=car&sectionType=traffic`
 
     fetch(url)
       .then(r => r.json())
@@ -73,10 +119,32 @@ function RoutesContent() {
         const rs = data.routes || []
         setRoutes(rs)
         const preds = await fetch('/data/traffic_predictions.json').then(r => r.json()).catch(() => null)
-        setForecasts(rs.map(() => ({
-          predictedSpeed: preds?.forecast?.[0]?.predicted_speed || FREE_FLOW,
-          delay: preds?.forecast?.[0]?.delay_mins || 0,
-        })))
+        setForecasts(rs.map((r: any, idx: number) => {
+          const summary = r.summary || {}
+          const travelTimeSec = summary.travelTimeInSeconds || 1
+          const noTrafficSec = summary.noTrafficTravelTimeInSeconds || summary.historicTrafficTravelTimeInSeconds || travelTimeSec
+          const trafficDelaySec = summary.trafficDelayInSeconds ?? Math.max(0, travelTimeSec - noTrafficSec)
+          const distKm = (summary.lengthInMeters || 0) / 1000
+
+          const liveDelayMins = Math.round(trafficDelaySec / 60)
+          const hotspots = getHotspotsForRoute(r)
+          const hotspotDelaySum = hotspots.reduce((acc, h) => acc + h.delay, 0)
+          const fallbackDelay = preds?.forecast?.[idx]?.delay_mins || 0
+
+          const finalDelay = Math.max(liveDelayMins, hotspotDelaySum, fallbackDelay)
+
+          let speedKmh = 48
+          if (distKm > 0 && travelTimeSec > 0) {
+            const adjustedTimeSec = travelTimeSec + Math.max(0, finalDelay - liveDelayMins) * 60
+            speedKmh = Math.max(14, Math.round(distKm / (adjustedTimeSec / 3600)))
+          }
+
+          return {
+            predictedSpeed: speedKmh,
+            delay: finalDelay,
+            hotspots,
+          }
+        }))
         setLoading(false)
       })
       .catch(() => { setError('Failed to load routes. Check your API key.'); setLoading(false) })
@@ -137,13 +205,38 @@ function RoutesContent() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 13, color: '#2c2825' }}>Predicted Speed</span>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: '#2c2825' }}>{Math.round(fc?.predictedSpeed || FREE_FLOW)} mph</span>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: '#2c2825' }}>{Math.round(fc?.predictedSpeed || FREE_FLOW)} km/h</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <span style={{ fontSize: 13, color: '#2c2825' }}>Added Delay</span>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: (fc?.delay || 0) > 5 ? '#ef4444' : '#a67c52' }}>+{Math.round(fc?.delay || 0)} min</span>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: (fc?.delay || 0) > 3 ? '#ef4444' : '#a67c52' }}>+{Math.round(fc?.delay || 0)} min</span>
                       </div>
-                      <div style={{ marginTop: 4 }}><CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} /></div>
+                      <div style={{ marginTop: 4 }}><CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} /></div>
+                    </div>
+
+                    {/* Delay Locations & Hotspots Breakdown */}
+                    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #e8e0d5' }}>
+                      <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>
+                        Delay Locations on Route
+                      </div>
+                      {fc?.hotspots && fc.hotspots.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {fc.hotspots.map((hs: any, hIdx: number) => (
+                            <div key={hIdx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, background: 'white', padding: '6px 10px', borderRadius: 8, border: '1px solid #e8e0d5' }}>
+                              <span style={{ fontWeight: 600, color: '#2c2825', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
+                                ⚠️ {hs.name}
+                              </span>
+                              <span style={{ fontWeight: 800, color: hs.severity === 'Severe' ? '#dc2626' : '#a67c52', flexShrink: 0 }}>
+                                +{hs.delay} min
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <CheckCircle size={12} /> Clear of bottleneck hotspots
+                        </div>
+                      )}
                     </div>
                   </div>
                   <button onClick={() => handleViewMap(i)} style={{ marginTop: 'auto', padding: '12px 16px', borderRadius: 12, background: '#2c2825', color: '#c8a97e', border: 'none', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>

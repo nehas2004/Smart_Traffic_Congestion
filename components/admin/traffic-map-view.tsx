@@ -61,36 +61,44 @@ export function TrafficMapView({
     const initMap = (L: any) => {
       if (mapRef.current || !containerRef.current) return
 
-      // Center on Kothamangalam monitoring region
-      const map = L.map(containerRef.current, {
-        center: [10.0601, 76.6214],
-        zoom: 14,
-        zoomControl: false,
-      })
-      mapRef.current = map
-
-      L.control.zoom({ position: 'bottomright' }).addTo(map)
-
-      // TomTom Base Raster Map
-      L.tileLayer(
-        `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
-        {
-          attribution: '© <a href="https://www.tomtom.com">TomTom</a>',
-          maxZoom: 22,
-          tileSize: 256,
+      try {
+        if ((containerRef.current as any)._leaflet_id) {
+          delete (containerRef.current as any)._leaflet_id
         }
-      ).addTo(map)
 
-      // TomTom Real-Time Traffic Flow Layer
-      const flow = L.tileLayer(
-        `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
-        { opacity: 0.75, maxZoom: 22 }
-      )
-      flow.addTo(map)
-      setFlowLayerInstance(flow)
+        // Center on Kothamangalam monitoring region
+        const map = L.map(containerRef.current, {
+          center: [10.0601, 76.6214],
+          zoom: 14,
+          zoomControl: false,
+        })
+        mapRef.current = map
 
-      // Render Corridor Polylines & Markers
-      renderMapObjects(L, map)
+        L.control.zoom({ position: 'bottomright' }).addTo(map)
+
+        // TomTom Base Raster Map
+        L.tileLayer(
+          `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
+          {
+            attribution: '© <a href="https://www.tomtom.com">TomTom</a>',
+            maxZoom: 22,
+            tileSize: 256,
+          }
+        ).addTo(map)
+
+        // TomTom Real-Time Traffic Flow Layer
+        const flow = L.tileLayer(
+          `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
+          { opacity: 0.75, maxZoom: 22 }
+        )
+        flow.addTo(map)
+        setFlowLayerInstance(flow)
+
+        // Render Corridor Polylines & Markers
+        renderMapObjects(L, map)
+      } catch (err) {
+        console.warn('TrafficMapView Leaflet init error:', err)
+      }
     }
 
     const loadLeaflet = () => {
@@ -116,18 +124,22 @@ export function TrafficMapView({
 
     return () => {
       if (mapRef.current) {
-        mapRef.current.remove()
+        try { mapRef.current.remove() } catch (_) {}
         mapRef.current = null
+      }
+      if (containerRef.current && (containerRef.current as any)._leaflet_id) {
+        delete (containerRef.current as any)._leaflet_id
       }
     }
   }, [])
 
   function renderMapObjects(L: any, map: any) {
-    // Clear existing
-    polylinesRef.current.forEach((p) => p.remove())
-    markersRef.current.forEach((m) => m.remove())
-    polylinesRef.current = []
-    markersRef.current = []
+    try {
+      // Clear existing
+      polylinesRef.current.forEach((p) => { try { p.remove() } catch (_) {} })
+      markersRef.current.forEach((m) => { try { m.remove() } catch (_) {} })
+      polylinesRef.current = []
+      markersRef.current = []
 
     // Corridors
     corridors.forEach((corr) => {
@@ -224,6 +236,9 @@ export function TrafficMapView({
         markersRef.current.push(marker)
       }
     })
+    } catch (err) {
+      console.warn('Error in renderMapObjects:', err)
+    }
   }
 
   // Update polylines when activeCorridor changes
