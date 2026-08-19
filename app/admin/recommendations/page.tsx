@@ -12,12 +12,49 @@ export default function RecommendationsPage() {
   const [loading, setLoading] = useState(true)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
   const [backendError, setBackendError] = useState('')
+  const [activeSector, setActiveSector] = useState<{ lat: number; lon: number; name?: string } | null>(null)
 
-  const fetchRecommendation = useCallback(async () => {
+  // Load sector on mount and listen to changes
+  useEffect(() => {
+    const loadSector = () => {
+      try {
+        const stored = localStorage.getItem('planner_active_city')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          setActiveSector(parsed)
+        }
+      } catch (_) {}
+    }
+    loadSector()
+
+    const handleCityChanged = (e: any) => {
+      if (e.detail) {
+        setActiveSector(e.detail)
+      }
+    }
+    window.addEventListener('planner_city_changed', handleCityChanged)
+    return () => window.removeEventListener('planner_city_changed', handleCityChanged)
+  }, [])
+
+  const fetchRecommendation = useCallback(async (sectorOverride?: { lat: number; lon: number; name?: string }) => {
     setLoading(true)
     setBackendError('')
+
+    let targetSector = sectorOverride || activeSector
+    if (!targetSector) {
+      try {
+        const stored = localStorage.getItem('planner_active_city')
+        if (stored) targetSector = JSON.parse(stored)
+      } catch (_) {}
+    }
+
+    const lat = targetSector?.lat ?? 10.0601
+    const lon = targetSector?.lon ?? 76.6214
+    const name = targetSector?.name || ''
+
     try {
-      const res = await fetch(`${AI_BACKEND}/recommendations`)
+      const url = `${AI_BACKEND}/recommendations?lat=${lat}&lon=${lon}${name ? `&corridor_name=${encodeURIComponent(name)}` : ''}`
+      const res = await fetch(url)
       const json = await res.json()
       if (json.success && json.data) {
         setData(json.data as RecommendationData)
@@ -33,12 +70,12 @@ export default function RecommendationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [activeSector])
 
-  // Initial load + poll
+  // Initial load + trigger on activeSector change + poll
   useEffect(() => {
     fetchRecommendation()
-    const timer = setInterval(fetchRecommendation, POLL_INTERVAL_MS)
+    const timer = setInterval(() => fetchRecommendation(), POLL_INTERVAL_MS)
     return () => clearInterval(timer)
   }, [fetchRecommendation])
 
