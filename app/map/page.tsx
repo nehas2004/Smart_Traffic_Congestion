@@ -42,8 +42,10 @@ function MapContent() {
         { opacity: 0.7, maxZoom: 22 }
       ).addTo(map)
 
-      // Draw route line from sessionStorage (set by /routes page)
-      const stored = sessionStorage.getItem('selected_route_points')
+      // Draw route line — try localStorage then sessionStorage
+      const stored = (() => {
+        try { return localStorage.getItem('flowcast_route_points') || sessionStorage.getItem('selected_route_points') } catch (_) { return null }
+      })()
       if (stored) {
         try {
           const pts: number[][] = JSON.parse(stored)

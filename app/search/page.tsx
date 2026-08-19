@@ -13,10 +13,19 @@ export default function SearchPage() {
   const [weather, setWeather] = useState({ desc: 'Loading...', temp: '--' })
   const [time, setTime] = useState('')
   const router = useRouter()
-  const KEY = '9IjAeUzCf9waJ3H1O3F3e7OprPPecCot'
+  const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || ''
 
   useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' }))
+    // Restore last search values
+    try {
+      const saved = localStorage.getItem('flowcast_route')
+      if (saved) {
+        const p = JSON.parse(saved)
+        if (p.fromName && p.fromName !== 'Origin') setFrom(p.fromName)
+        if (p.toName && p.toName !== 'Destination') setTo(p.toName)
+      }
+    } catch (_) {}
+    const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }))
     tick(); const t = setInterval(tick, 10000); return () => clearInterval(t)
   }, [])
 
@@ -60,7 +69,8 @@ export default function SearchPage() {
     const fp = fr.results?.[0]?.position
     const tp = tr.results?.[0]?.position
     if(!fp || !tp) { setLoading(false); alert('Could not find one of the locations. Try being more specific.'); return }
-    router.push(`/routes?fromLat=${fp.lat}&fromLon=${fp.lon}&toLat=${tp.lat}&toLon=${tp.lon}&fromName=${encodeURIComponent(from)}&toName=${encodeURIComponent(to)}`)
+    const routeUrl = `/routes?fromLat=${fp.lat}&fromLon=${fp.lon}&toLat=${tp.lat}&toLon=${tp.lon}&fromName=${encodeURIComponent(from)}&toName=${encodeURIComponent(to)}`
+    router.push(routeUrl)
   }
 
   return (
