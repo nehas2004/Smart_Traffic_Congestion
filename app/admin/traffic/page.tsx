@@ -25,12 +25,12 @@ export default function AdminTrafficMapPage() {
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [selectedCorridorId, setSelectedCorridorId] = useState<string>('corr-01')
-  const [activeCity, setActiveCity] = useState('10.0601°, 76.6214°')
-  const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0601, lon: 76.6214 })
+  const [activeCity, setActiveCity] = useState('Kochi (Ernakulam)')
+  const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0033, lon: 76.2996 })
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  async function loadData(sector?: { lat: number; lon: number; name: string }) {
+  async function loadData(sector?: { lat: number; lon: number; name: string; cityName?: string }) {
     setLoading(true)
     try {
       let sec = sector
@@ -41,7 +41,8 @@ export default function AdminTrafficMapPage() {
         } catch (_) {}
       }
       if (sec) {
-        setActiveCity(sec.name)
+        const displayName = sec.cityName || sec.name || `${sec.lat.toFixed(4)}°, ${sec.lon.toFixed(4)}°`
+        setActiveCity(displayName)
         setActiveCoords({ lat: sec.lat, lon: sec.lon })
       }
 
