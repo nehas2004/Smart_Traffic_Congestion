@@ -109,6 +109,7 @@ export default function AdminTrafficMapPage() {
       <TrafficMapView
         corridors={corridors}
         bottlenecks={bottlenecks}
+        recommendations={recommendations}
         selectedCorridorId={selectedCorridorId}
         onSelectCorridor={(id) => setSelectedCorridorId(id)}
       />
