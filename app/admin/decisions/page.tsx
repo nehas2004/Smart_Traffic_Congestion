@@ -1,6 +1,5 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { Nav } from '@/components/shared/nav'
 import { CheckCircle, XCircle, Edit3, Clock } from 'lucide-react'
 
 const AI_BACKEND = process.env.NEXT_PUBLIC_AI_BACKEND_URL || 'http://localhost:8000'
@@ -47,7 +46,6 @@ export default function DecisionsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f5' }}>
-      <Nav />
       <main style={{ maxWidth: 1000, margin: '0 auto', padding: '48px 24px 80px' }}>
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>City Planner · History</div>

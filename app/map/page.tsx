@@ -19,54 +19,62 @@ function MapContent() {
     const initMap = (L: any) => {
       if (mapRef.current || !containerRef.current) return
 
-      const map = L.map(containerRef.current, {
-        center: [10.0601, 76.6214],
-        zoom: 13,
-        zoomControl: true,
-      })
-      mapRef.current = map
-
-      // TomTom raster tile API (uses your API key)
-      L.tileLayer(
-        `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
-        {
-          attribution: '© <a href="https://www.tomtom.com">TomTom</a>',
-          maxZoom: 22,
-          tileSize: 256,
+      try {
+        if ((containerRef.current as any)._leaflet_id) {
+          delete (containerRef.current as any)._leaflet_id
         }
-      ).addTo(map)
 
-      // TomTom traffic flow overlay (uses your API key)
-      L.tileLayer(
-        `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
-        { opacity: 0.7, maxZoom: 22 }
-      ).addTo(map)
+        const map = L.map(containerRef.current, {
+          center: [10.0601, 76.6214],
+          zoom: 13,
+          zoomControl: true,
+        })
+        mapRef.current = map
 
-      // Draw route line — try localStorage then sessionStorage
-      const stored = (() => {
-        try { return localStorage.getItem('flowcast_route_points') || sessionStorage.getItem('selected_route_points') } catch (_) { return null }
-      })()
-      if (stored) {
-        try {
-          const pts: number[][] = JSON.parse(stored)
-          if (pts.length > 1) {
-            const latLngs = pts.map((p) => [p[1], p[0]] as [number, number])
-            L.polyline(latLngs, { color: '#2c2825', weight: 8, opacity: 0.9 }).addTo(map)
-            L.polyline(latLngs, { color: '#c8a97e', weight: 4, opacity: 1 }).addTo(map)
-
-            const startIcon = L.divIcon({
-              html: `<div style="background:#4caf7d;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
-              className: '', iconAnchor: [7, 7],
-            })
-            const endIcon = L.divIcon({
-              html: `<div style="background:#c8a97e;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
-              className: '', iconAnchor: [7, 7],
-            })
-            L.marker(latLngs[0], { icon: startIcon }).bindPopup(`<b>Start</b><br/>${fromName}`).addTo(map)
-            L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).bindPopup(`<b>End</b><br/>${toName}`).addTo(map)
-            map.fitBounds(L.latLngBounds(latLngs), { padding: [60, 60] })
+        // TomTom raster tile API (uses your API key)
+        L.tileLayer(
+          `https://api.tomtom.com/map/1/tile/basic/main/{z}/{x}/{y}.png?key=${KEY}&tileSize=256`,
+          {
+            attribution: '© <a href="https://www.tomtom.com">TomTom</a>',
+            maxZoom: 22,
+            tileSize: 256,
           }
-        } catch (_) {}
+        ).addTo(map)
+
+        // TomTom traffic flow overlay (uses your API key)
+        L.tileLayer(
+          `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
+          { opacity: 0.7, maxZoom: 22 }
+        ).addTo(map)
+
+        // Draw route line — try localStorage then sessionStorage
+        const stored = (() => {
+          try { return localStorage.getItem('flowcast_route_points') || sessionStorage.getItem('selected_route_points') } catch (_) { return null }
+        })()
+        if (stored) {
+          try {
+            const pts: number[][] = JSON.parse(stored)
+            if (pts.length > 1) {
+              const latLngs = pts.map((p) => [p[1], p[0]] as [number, number])
+              L.polyline(latLngs, { color: '#2c2825', weight: 8, opacity: 0.9 }).addTo(map)
+              L.polyline(latLngs, { color: '#c8a97e', weight: 4, opacity: 1 }).addTo(map)
+
+              const startIcon = L.divIcon({
+                html: `<div style="background:#4caf7d;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+                className: '', iconAnchor: [7, 7],
+              })
+              const endIcon = L.divIcon({
+                html: `<div style="background:#c8a97e;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`,
+                className: '', iconAnchor: [7, 7],
+              })
+              L.marker(latLngs[0], { icon: startIcon }).bindPopup(`<b>Start</b><br/>${fromName}`).addTo(map)
+              L.marker(latLngs[latLngs.length - 1], { icon: endIcon }).bindPopup(`<b>End</b><br/>${toName}`).addTo(map)
+              map.fitBounds(L.latLngBounds(latLngs), { padding: [60, 60] })
+            }
+          } catch (_) {}
+        }
+      } catch (err) {
+        console.warn('MapPage initMap error:', err)
       }
     }
 
@@ -89,7 +97,15 @@ function MapContent() {
     }
 
     load()
-    return () => { mapRef.current?.remove(); mapRef.current = null }
+    return () => {
+      if (mapRef.current) {
+        try { mapRef.current.remove() } catch (_) {}
+        mapRef.current = null
+      }
+      if (containerRef.current && (containerRef.current as any)._leaflet_id) {
+        delete (containerRef.current as any)._leaflet_id
+      }
+    }
   }, [fromName, toName])
 
   return (
