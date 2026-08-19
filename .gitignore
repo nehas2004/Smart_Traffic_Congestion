@@ -6,8 +6,11 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
+# Environment variables — NEVER commit real keys
+.env
+.env.*
 .env*.local
+!.env.example
 
 # Common ignores
 node_modules
