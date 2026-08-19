@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Map, History, ShieldAlert, ArrowLeft, Radio } from 'lucide-react'
+import { LayoutDashboard, Map, History, ShieldAlert, ArrowLeft, Radio, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const navItems = [
   { href: '/admin', label: 'Admin Overview', icon: LayoutDashboard },
   { href: '/admin/traffic', label: 'Congestion Map', icon: Map },
   { href: '/admin/decisions', label: 'Decision History', icon: History },
+  { href: '/admin/recommendations', label: 'AI Recommendations', icon: Sparkles },
 ]
 
 export function AdminNav() {

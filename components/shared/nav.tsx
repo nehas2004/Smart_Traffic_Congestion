@@ -8,7 +8,6 @@ const links = [
   { href: '/routes',    label: 'Route Options', icon: Waypoints },
   { href: '/map',       label: 'Live Map',      icon: Map },
   { href: '/dashboard', label: 'Analytics',     icon: BarChart2 },
-  { href: '/admin',     label: 'Admin Center',  icon: ShieldAlert },
   { href: '/data',      label: 'Data Upload',   icon: Upload },
 ]
 
@@ -31,24 +30,37 @@ export function Nav() {
             Flowcast
           </span>
         </div>
-        <nav style={{ display: 'flex', gap: 4 }}>
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href
-            return (
-              <Link key={href} href={href} style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                textDecoration: 'none',
-                background: active ? '#2c2825' : 'transparent',
-                color: active ? '#c8a97e' : '#9e9189',
-                transition: 'all 0.15s',
-              }}>
-                <Icon size={14} />
-                {label}
-              </Link>
-            )
-          })}
-        </nav>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <nav style={{ display: 'flex', gap: 4 }}>
+            {links.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href
+              return (
+                <Link key={href} href={href} style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+                  textDecoration: 'none',
+                  background: active ? '#2c2825' : 'transparent',
+                  color: active ? '#c8a97e' : '#9e9189',
+                  transition: 'all 0.15s',
+                }}>
+                  <Icon size={14} />
+                  {label}
+                </Link>
+              )
+            })}
+          </nav>
+          <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
+          <Link href="/admin" style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
+            textDecoration: 'none',
+            background: '#f5f2ee', border: '1px solid #e8e0d5',
+            color: '#2c2825', transition: 'all 0.15s',
+          }}>
+            <ShieldAlert size={14} color="#a67c52" />
+            City Planner Portal
+          </Link>
+        </div>
       </div>
     </header>
   )
