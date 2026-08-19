@@ -10,7 +10,9 @@ export interface ModelEvaluation {
   status: EvaluationStatus
   mae?: number
   rmse?: number
+  horizon?: '1h' | '3h' | '6h'
   evaluationPeriod?: string
+  testRows?: number
   version?: string
 }
 
@@ -36,6 +38,7 @@ export function ModelEvaluationCard({ evaluation }: ModelEvaluationCardProps) {
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">{evaluation.role}</p>
             <h2 className="mt-1 text-base font-extrabold text-[#2c2825]">{evaluation.name}</h2>
+            {evaluation.horizon && <p className="mt-1 font-mono text-xs font-bold text-[#a67c52]">{evaluation.horizon} horizon</p>}
           </div>
           <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider ${
             available ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -60,6 +63,10 @@ export function ModelEvaluationCard({ evaluation }: ModelEvaluationCardProps) {
           <div className="flex justify-between gap-4">
             <dt className="text-[#9e9189]">Evaluation period</dt>
             <dd className="font-medium text-[#2c2825]">{evaluation.evaluationPeriod || 'Not yet evaluated'}</dd>
+          </div>
+          <div className="flex justify-between gap-4">
+            <dt className="text-[#9e9189]">Test rows</dt>
+            <dd className="font-medium text-[#2c2825]">{evaluation.testRows?.toLocaleString() || 'Not yet available'}</dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-[#9e9189]">Model version</dt>

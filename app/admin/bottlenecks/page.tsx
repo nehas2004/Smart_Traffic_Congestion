@@ -5,8 +5,7 @@ import { Activity, AlertCircle, AlertTriangle, Clock3, RefreshCw, TrendingUp } f
 
 import { AdminBottleneckTable } from '@/components/admin/admin-bottleneck-table'
 import { Card, CardContent } from '@/components/ui/card'
-import { getBottleneckData, TrafficDataSource } from '@/lib/admin-api'
-import { BottleneckItem } from '@/types/traffic'
+import { getBottleneckData, TrafficBottleneck, TrafficDataSource } from '@/lib/admin-api'
 
 function BottlenecksPageSkeleton() {
   return (
@@ -21,7 +20,7 @@ function BottlenecksPageSkeleton() {
 }
 
 export default function AdminBottlenecksPage() {
-  const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
+  const [bottlenecks, setBottlenecks] = useState<TrafficBottleneck[]>([])
   const [selectedCorridorId, setSelectedCorridorId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -107,7 +106,8 @@ export default function AdminBottlenecksPage() {
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#6b625b]">
                   <span>Severity: <strong className="uppercase text-[#2c2825]">{selectedBottleneck.severity}</strong></span>
                   <span>Delay: <strong className="text-[#2c2825]">+{selectedBottleneck.avg_delay_mins} min</strong></span>
-                  <span>Confidence: <strong className="text-[#2c2825]">{Math.round(selectedBottleneck.confidence * 100)}%</strong></span>
+                  <span>Predicted TTI ({selectedBottleneck.forecast_horizon}): <strong className="text-[#2c2825]">{selectedBottleneck.predicted_congestion?.toFixed(2) ?? 'Unavailable'}</strong></span>
+                  <span>Confidence: <strong className="text-[#2c2825]">{selectedBottleneck.confidence == null ? 'Unavailable' : `${Math.round(selectedBottleneck.confidence * 100)}%`}</strong></span>
                 </div>
               </CardContent>
             </Card>
@@ -118,8 +118,8 @@ export default function AdminBottlenecksPage() {
           <div className="rounded-xl border border-dashed border-[#d8c9b7] bg-[#faf8f5] px-4 py-3 text-xs text-[#6b625b]">
             <span className="font-bold text-[#2c2825]">{dataSource === 'mock' ? 'Development data mode.' : 'Live API data.'}</span>{' '}
             {dataSource === 'mock'
-              ? 'This page uses the existing traffic API adapter and its mock fallback until the shared bottleneck API is connected.'
-              : 'Bottleneck data was loaded from the configured traffic service.'}
+              ? 'Mock bottleneck data is displayed only because the configured traffic service is unavailable.'
+              : 'Backend-ranked bottleneck data was loaded from the configured traffic service.'}
           </div>
         </>
       ) : (
