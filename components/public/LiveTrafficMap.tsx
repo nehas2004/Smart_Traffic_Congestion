@@ -3,32 +3,46 @@ import { useEffect, useRef, useState } from 'react'
 
 // ── Public-safe Traffic object — FROZEN SHAPE per SHARED_CONTRACT.md ──────────
 export interface TrafficCorridor {
-  corridor_id: number
-  city: string
+  corridor_id: number | string
+  city?: string
   corridor_name: string
   timestamp: string
   current_congestion: number
   predicted_congestion: number
   severity: 'critical' | 'high' | 'medium' | 'low'
   confidence: number
+  coordinates?: [number, number]
 }
 
 // City map centres
 const CITY_CENTRES: Record<string, [number, number]> = {
+  'Kothamangalam':       [10.0601, 76.6214],
+  'Munnar':              [10.0889, 77.0595],
+  'Aluva':               [10.1076, 76.3516],
   'Kochi':               [10.0200, 76.3050],
   'Thrissur':            [10.5276, 76.2144],
   'Thiruvananthapuram':  [8.5241,  76.9366],
+  'Trivandrum':          [8.5241,  76.9366],
   'Kozhikode':           [11.2588, 75.7804],
   'Kollam':              [8.8932,  76.6141],
 }
 
-// Per-corridor centre-points (corridor_id → lat/lng)
-const CORRIDOR_COORDS: Record<number, [number, number]> = {
+// Default per-corridor centre-points
+const DEFAULT_CORRIDOR_COORDS: Record<string | number, [number, number]> = {
+  // Kothamangalam / Munnar / Aluva
+  1:   [10.0601, 76.6214], // Kothamangalam Central
+  2:   [10.0889, 77.0595], // Munnar Gap Road
+  5:   [10.0601, 76.6214], // MC Road Junction (Kothamangalam)
+  7:   [10.0961, 76.3558], // Aluva NH-85
   // Kochi
   101: [10.0126, 76.3084], // Kaloor Junction
   102: [10.0228, 76.3083], // Edapally Toll
   103: [9.9717,  76.3106], // Vyttila Mobility Hub
   104: [9.9837,  76.2776], // Marine Drive
+  12:  [10.0126, 76.3084],
+  3:   [10.0228, 76.3083],
+  9:   [9.9717,  76.3106],
+  11:  [9.9837,  76.2776],
   // Thrissur
   201: [10.5248, 76.2130], // Thrissur Round
   202: [10.5310, 76.2200], // Poothole Road
@@ -58,14 +72,17 @@ const SEVERITY_LABEL: Record<string, string> = {
 
 interface Props {
   corridors: TrafficCorridor[]
-  selectedCity: string
+  selectedCity?: string
+  customCenter?: [number, number]
   height?: string | number
 }
 
-export function LiveTrafficMap({ corridors, selectedCity, height = 380 }: Props) {
+export function LiveTrafficMap({ corridors, selectedCity = 'All Cities', customCenter, height = 380 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
+  const markersRef = useRef<any[]>([])
   const [error, setError] = useState<string | null>(null)
+  const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -76,41 +93,60 @@ export function LiveTrafficMap({ corridors, selectedCity, height = 380 }: Props)
         if ((containerRef.current as any)._leaflet_id) {
           delete (containerRef.current as any)._leaflet_id
         }
-        const centre = CITY_CENTRES[selectedCity] || [10.0200, 76.3050]
+
+        const centre = customCenter || CITY_CENTRES[selectedCity] || [10.0601, 76.6214]
         const map = L.map(containerRef.current, {
           center: centre,
-          zoom: selectedCity === 'All Cities' ? 7 : 12,
+          zoom: selectedCity === 'All Cities' && !customCenter ? 8 : 13,
           scrollWheelZoom: false,
           zoomControl: true,
         })
         mapRef.current = map
 
+        // Base Map (OpenStreetMap)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '© OpenStreetMap contributors',
           maxZoom: 18,
         }).addTo(map)
 
-        corridors.forEach((c) => {
-          const coords = CORRIDOR_COORDS[c.corridor_id]
-          if (!coords) return
-          const color = SEVERITY_COLOUR[c.severity] || '#6b7280'
-          const circle = L.circleMarker(coords, {
-            radius: 14, fillColor: color, color: '#fff',
-            weight: 2.5, opacity: 1, fillOpacity: 0.85,
-          }).addTo(map)
-          circle.bindPopup(`
-            <div style="font-family:system-ui;min-width:190px">
-              <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">${c.city}</div>
-              <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.corridor_name}</div>
-              <div style="font-size:12px;color:#374151">Now: <b style="color:${color}">${SEVERITY_LABEL[c.severity] || c.severity}</b> — ${c.current_congestion}%</div>
-              <div style="font-size:12px;color:#6b7280">15-min forecast: ${c.predicted_congestion}%</div>
-              <div style="font-size:11px;color:#9ca3af;margin-top:4px">Confidence: ${Math.round(c.confidence * 100)}%</div>
-            </div>
-          `)
-        })
+        // TomTom Live Traffic Flow Tile Layer (Real-time green/yellow/red road coloring)
+        L.tileLayer(
+          `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${KEY}`,
+          { opacity: 0.82, maxZoom: 18 }
+        ).addTo(map)
+
+        updateMarkers(L, map)
       } catch {
         setError('Map could not initialise.')
       }
+    }
+
+    const updateMarkers = (L: any, map: any) => {
+      markersRef.current.forEach((m) => { try { m.remove() } catch (_) {} })
+      markersRef.current = []
+
+      corridors.forEach((c) => {
+        const coords = c.coordinates || DEFAULT_CORRIDOR_COORDS[c.corridor_id] || customCenter || CITY_CENTRES[c.city || ''] || null
+        if (!coords) return
+
+        const color = SEVERITY_COLOUR[c.severity] || '#6b7280'
+        const circle = L.circleMarker(coords, {
+          radius: 14, fillColor: color, color: '#fff',
+          weight: 2.5, opacity: 1, fillOpacity: 0.9,
+        }).addTo(map)
+
+        circle.bindPopup(`
+          <div style="font-family:system-ui;min-width:190px">
+            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">${c.city || 'Live Location'}</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.corridor_name}</div>
+            <div style="font-size:12px;color:#374151">Now: <b style="color:${color}">${SEVERITY_LABEL[c.severity] || c.severity}</b> — ${c.current_congestion}%</div>
+            <div style="font-size:12px;color:#6b7280">15-min forecast: ${c.predicted_congestion}%</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">Confidence: ${Math.round(c.confidence * 100)}%</div>
+          </div>
+        `)
+
+        markersRef.current.push(circle)
+      })
     }
 
     const load = () => {
@@ -140,7 +176,47 @@ export function LiveTrafficMap({ corridors, selectedCity, height = 380 }: Props)
         }
       } catch (_) {}
     }
-  }, [corridors, selectedCity])
+  }, [])
+
+  // Fly to customCenter or selectedCity when it changes
+  useEffect(() => {
+    if (mapRef.current && (window as any).L) {
+      const L = (window as any).L
+      const centre = customCenter || CITY_CENTRES[selectedCity]
+      if (centre) {
+        mapRef.current.flyTo(centre, selectedCity === 'All Cities' && !customCenter ? 8 : 13, {
+          animate: true,
+          duration: 1.0,
+        })
+      }
+
+      // Re-render markers
+      markersRef.current.forEach((m) => { try { m.remove() } catch (_) {} })
+      markersRef.current = []
+      corridors.forEach((c) => {
+        const coords = c.coordinates || DEFAULT_CORRIDOR_COORDS[c.corridor_id] || customCenter || CITY_CENTRES[c.city || ''] || null
+        if (!coords) return
+
+        const color = SEVERITY_COLOUR[c.severity] || '#6b7280'
+        const circle = L.circleMarker(coords, {
+          radius: 14, fillColor: color, color: '#fff',
+          weight: 2.5, opacity: 1, fillOpacity: 0.9,
+        }).addTo(mapRef.current)
+
+        circle.bindPopup(`
+          <div style="font-family:system-ui;min-width:190px">
+            <div style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px">${c.city || 'Live Location'}</div>
+            <div style="font-weight:700;font-size:13px;margin-bottom:4px">${c.corridor_name}</div>
+            <div style="font-size:12px;color:#374151">Now: <b style="color:${color}">${SEVERITY_LABEL[c.severity] || c.severity}</b> — ${c.current_congestion}%</div>
+            <div style="font-size:12px;color:#6b7280">15-min forecast: ${c.predicted_congestion}%</div>
+            <div style="font-size:11px;color:#9ca3af;margin-top:4px">Confidence: ${Math.round(c.confidence * 100)}%</div>
+          </div>
+        `)
+
+        markersRef.current.push(circle)
+      })
+    }
+  }, [corridors, selectedCity, customCenter])
 
   if (error) {
     return (
