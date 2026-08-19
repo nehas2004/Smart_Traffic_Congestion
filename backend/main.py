@@ -37,3 +37,16 @@ app.include_router(decisions_router)
 @app.get("/health")
 def health():
     return {"status": "ok", "module": "ai-recommendation"}
+
+
+@app.get("/predict")
+def predict_traffic(lat: float = 10.05, lon: float = 76.62):
+    try:
+        from app.services.realtime_traffic_predictor import RealTimeTrafficPredictor
+        predictor = RealTimeTrafficPredictor()
+        return predictor.predict(lat=lat, lon=lon)
+    except Exception as e:
+        return {
+            "error": str(e),
+            "message": "Make sure PyTorch (torch) and scikit-learn/joblib are installed in backend env",
+        }
