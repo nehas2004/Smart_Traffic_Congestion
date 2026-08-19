@@ -200,9 +200,10 @@ function RoutesContent() {
       .then(async (data) => {
         const rs = data.routes || []
         setRoutes(rs)
-        const preds = await fetch('/data/traffic_predictions.json')
-          .then((r) => r.json())
-          .catch(() => null)
+        const [preds, incidents] = await Promise.all([
+          fetch('/data/traffic_predictions.json').then((r) => r.json()).catch(() => null),
+          fetch('/api/incidents').then((r) => r.json()).catch(() => []),
+        ])
 
         setForecasts(
           rs.map((r: any, idx: number) => {
@@ -221,7 +222,27 @@ function RoutesContent() {
             const hotspotDelaySum = hotspots.reduce((acc, h) => acc + h.delay, 0)
             const fallbackDelay = preds?.forecast?.[idx]?.delay_mins || 0
 
-            const finalDelay = Math.max(liveDelayMins, hotspotDelaySum, fallbackDelay)
+            // Check if any reported local incidents (Temple Fest, Accident, Concert, etc.) lie near route points
+            const pts = (r?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude])
+            const matchingIncidents: any[] = []
+            let incidentDelaySum = 0
+
+            if (Array.isArray(incidents)) {
+              incidents.forEach((inc: any) => {
+                if (!inc.active || !inc.lat || !inc.lon) return
+                const isNear = pts.some((pt: any) => {
+                  const dLat = Math.abs(pt[0] - inc.lat)
+                  const dLon = Math.abs(pt[1] - inc.lon)
+                  return dLat < 0.015 && dLon < 0.015 // ~1.5km
+                })
+                if (isNear) {
+                  matchingIncidents.push(inc)
+                  incidentDelaySum += inc.expected_delay_mins || 15
+                }
+              })
+            }
+
+            const finalDelay = Math.max(liveDelayMins + incidentDelaySum, hotspotDelaySum, fallbackDelay)
 
             let speedKmh = 48
             if (distKm > 0 && travelTimeSec > 0) {
@@ -233,6 +254,7 @@ function RoutesContent() {
               predictedSpeed: speedKmh,
               delay: finalDelay,
               hotspots,
+              reportedIncidents: matchingIncidents,
             }
           })
         )
@@ -464,6 +486,57 @@ function RoutesContent() {
             <div style="font-weight: 800; font-size: 13px; color: #2c2825; margin-top: 2px;">${hs.name}</div>
             <div style="font-size: 12px; color: #dc2626; font-weight: 700; margin-top: 4px;">+${hs.delay} min delay</div>
             <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Severity: ${hs.severity}</div>
+          </div>
+        `)
+        markersRef.current.push(marker)
+      }
+    })
+
+    // 3. Render Reported Local Event Incidents (Temple Fest, Accident, Concert, etc.)
+    const reportedIncidents = currentForecast?.reportedIncidents || []
+    reportedIncidents.forEach((inc: any) => {
+      if (inc.lat && inc.lon) {
+        heatPoints.push([inc.lat, inc.lon, 1.0])
+        heatPoints.push([inc.lat + 0.002, inc.lon + 0.002, 0.85])
+        heatPoints.push([inc.lat - 0.002, inc.lon - 0.002, 0.85])
+
+        let emoji = '⚠️'
+        if (inc.category === 'temple_fest') emoji = '🎪'
+        else if (inc.category === 'accident') emoji = '💥'
+        else if (inc.category === 'concert') emoji = '🎸'
+        else if (inc.category === 'construction') emoji = '🚧'
+        else if (inc.category === 'weather_hazard') emoji = '⛈️'
+        else if (inc.category === 'procession') emoji = '🚩'
+
+        const incIcon = L.divIcon({
+          html: `
+            <div style="
+              width: 36px; height: 36px; border-radius: 50%;
+              background: #991b1b; color: white;
+              display: flex; align-items: center; justify-content: center;
+              border: 2.5px solid white; box-shadow: 0 4px 14px rgba(220,38,38,0.6);
+              cursor: pointer; font-size: 18px; position: relative;
+            ">
+              <span style="
+                position: absolute; inset: -3px; border-radius: 50%;
+                border: 2px solid #ef4444; animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+                opacity: 0.85; pointer-events: none;
+              "></span>
+              <span>${emoji}</span>
+            </div>
+          `,
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        })
+
+        const marker = L.marker([inc.lat, inc.lon], { icon: incIcon, zIndexOffset: 2000 }).addTo(map)
+        marker.bindPopup(`
+          <div style="font-family: system-ui; min-width: 190px; padding: 2px;">
+            <div style="font-size: 10px; font-weight: 800; color: #dc2626; text-transform: uppercase;">${emoji} REPORTED EVENT DISRUPTION</div>
+            <b style="font-size: 13px; color: #2c2825; display: block; margin-top: 2px;">${inc.title}</b>
+            <div style="color: #b91c1c; font-size: 11px; font-weight: 800; margin-top: 4px;">Expected Delay: +${inc.expected_delay_mins} mins</div>
+            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${inc.description || ''}</div>
           </div>
         `)
         markersRef.current.push(marker)
@@ -839,6 +912,44 @@ function RoutesContent() {
                       ) : (
                         <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
                           <CheckCircle size={12} /> Clear route with minimal delay
+                        </div>
+                      )}
+
+                      {/* Active Local Event / Disruption Warning Banner */}
+                      {fc?.reportedIncidents && fc.reportedIncidents.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            background: '#fef2f2',
+                            border: '1.5px solid #fca5a5',
+                            borderRadius: 12,
+                            padding: '10px 12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#dc2626' }}>
+                            <span>🚨 REPORTED EVENT / DISRUPTION ON THIS ROUTE</span>
+                          </div>
+                          {fc.reportedIncidents.map((inc: any, i: number) => {
+                            let emoji = '⚠️'
+                            if (inc.category === 'temple_fest') emoji = '🎪'
+                            else if (inc.category === 'accident') emoji = '💥'
+                            else if (inc.category === 'concert') emoji = '🎸'
+                            else if (inc.category === 'construction') emoji = '🚧'
+                            else if (inc.category === 'weather_hazard') emoji = '⛈️'
+                            else if (inc.category === 'procession') emoji = '🚩'
+
+                            return (
+                              <div key={i} style={{ marginTop: 6, fontSize: 12 }}>
+                                <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span>{emoji}</span>
+                                  <span>{inc.title}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2, fontWeight: 600 }}>
+                                  +{inc.expected_delay_mins} min delay expected · {inc.description}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </div>

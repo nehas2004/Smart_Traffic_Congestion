@@ -250,6 +250,46 @@ function MapContent() {
         heatPoints.push([pts[i][0], pts[i][1], 0.65])
       }
 
+      // Fetch and overlay reported local incidents (Temple fest, accident, concert, etc.)
+      fetch('/api/incidents')
+        .then((r) => r.json())
+        .then((incidents: any[]) => {
+          if (!Array.isArray(incidents)) return
+          incidents.forEach((inc) => {
+            if (inc.lat && inc.lon && inc.active) {
+              heatPoints.push([inc.lat, inc.lon, 1.0])
+              heatPoints.push([inc.lat + 0.002, inc.lon + 0.002, 0.85])
+              heatPoints.push([inc.lat - 0.002, inc.lon - 0.002, 0.85])
+
+              let emoji = '⚠️'
+              if (inc.category === 'temple_fest') emoji = '🎪'
+              else if (inc.category === 'accident') emoji = '💥'
+              else if (inc.category === 'concert') emoji = '🎸'
+              else if (inc.category === 'construction') emoji = '🚧'
+              else if (inc.category === 'weather_hazard') emoji = '⛈️'
+              else if (inc.category === 'procession') emoji = '🚩'
+
+              const icon = L.divIcon({
+                html: `<div style="display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:#991b1b;color:white;border:2.5px solid white;border-radius:50%;box-shadow:0 3px 14px rgba(0,0,0,0.5);font-size:18px;">${emoji}</div>`,
+                className: '',
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+              })
+
+              const m = L.marker([inc.lat, inc.lon], { icon, zIndexOffset: 2000 }).addTo(map)
+              m.bindPopup(`
+                <div style="font-family:system-ui;min-width:180px">
+                  <div style="font-size:10px;font-weight:800;color:#dc2626;text-transform:uppercase;">${emoji} ${inc.title}</div>
+                  <div style="color:#b91c1c;font-size:11px;font-weight:800;margin-top:2px;">+${inc.expected_delay_mins} min delay</div>
+                  <div style="font-size:11px;color:#4b5563;margin-top:2px;">${inc.description || ''}</div>
+                </div>
+              `)
+              markersRef.current.push(m)
+            }
+          })
+        })
+        .catch(() => {})
+
       if (L.heatLayer && heatPoints.length > 0 && mapLayerMode !== 'flow') {
         const heat = L.heatLayer(heatPoints, {
           radius: 30,

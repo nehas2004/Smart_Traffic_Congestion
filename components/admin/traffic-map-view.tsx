@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { CorridorDetail, BottleneckItem, SeverityLevel, TrafficRecommendation } from '@/types/traffic'
+import { CorridorDetail, BottleneckItem, SeverityLevel, TrafficRecommendation, ReportedIncident } from '@/types/traffic'
 import {
   MapPin,
   Layers,
@@ -64,6 +64,7 @@ export function TrafficMapView({
   const polylinesRef = useRef<any[]>([])
   const markersRef = useRef<any[]>([])
   const recMarkersRef = useRef<any[]>([])
+  const incidentMarkersRef = useRef<any[]>([])
   const radiusCircleRef = useRef<any>(null)
   const searchDebounceRef = useRef<any>(null)
 
@@ -72,19 +73,62 @@ export function TrafficMapView({
   const [corridors, setCorridors] = useState<CorridorDetail[]>(initialCorridors)
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>(initialBottlenecks)
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>(initialRecommendations)
+  const [incidents, setIncidents] = useState<ReportedIncident[]>([])
   const [showRecommendations, setShowRecommendations] = useState(true)
 
-  // Listen to city changes from the Global City Selector Modal
+  // Fetch active incidents for active location
+  const loadIncidents = useCallback(async (lat: number, lon: number) => {
+    try {
+      const res = await fetch(`/api/incidents?lat=${lat}&lon=${lon}&radiusKm=20`)
+      if (res.ok) {
+        const data = await res.json()
+        setIncidents(data || [])
+      }
+    } catch (_) {}
+  }, [])
+
   useEffect(() => {
+    loadIncidents(currentCenter[0], currentCenter[1])
+
+    ;(window as any).__resolveIncident = async (id: string) => {
+      try {
+        const res = await fetch(`/api/incidents?id=${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          window.dispatchEvent(new CustomEvent('incident_resolved', { detail: { id } }))
+          setIncidents((prev) => prev.filter((i) => i.id !== id))
+        }
+      } catch (_) {}
+    }
+
     const onCityChange = (e: any) => {
       if (e.detail) {
         const { lat, lon, name } = e.detail
         handleSelectLocation(lat, lon, name)
+        loadIncidents(lat, lon)
       }
     }
+
+    const onIncidentReported = (e: any) => {
+      if (e.detail) {
+        setIncidents((prev) => [e.detail, ...prev.filter((i) => i.id !== e.detail.id)])
+      }
+    }
+
+    const onIncidentResolved = (e: any) => {
+      if (e.detail?.id) {
+        setIncidents((prev) => prev.filter((i) => i.id !== e.detail.id))
+      }
+    }
+
     window.addEventListener('planner_city_changed', onCityChange)
-    return () => window.removeEventListener('planner_city_changed', onCityChange)
-  }, [])
+    window.addEventListener('incident_reported', onIncidentReported)
+    window.addEventListener('incident_resolved', onIncidentResolved)
+    return () => {
+      window.removeEventListener('planner_city_changed', onCityChange)
+      window.removeEventListener('incident_reported', onIncidentReported)
+      window.removeEventListener('incident_resolved', onIncidentResolved)
+    }
+  }, [currentCenter, loadIncidents])
 
   const [activeCorridor, setActiveCorridor] = useState<CorridorDetail | null>(
     initialCorridors.find((c) => c.corridor_id === selectedCorridorId) || initialCorridors[0] || null
@@ -675,11 +719,94 @@ export function TrafficMapView({
         })
       }
 
+      // Render Reported Local Disruption Incidents (Temple fest, accidents, concerts, etc.)
+      incidents.forEach((inc) => {
+        if (inc.lat && inc.lon && inc.active) {
+          // 1. Add intense thermal heat points to heatmap
+          const heatIntensity = inc.severity === 'severe' ? 1.0 : inc.severity === 'heavy' ? 0.85 : 0.65
+          heatPoints.push([inc.lat, inc.lon, heatIntensity])
+          heatPoints.push([inc.lat + 0.002, inc.lon + 0.002, heatIntensity * 0.85])
+          heatPoints.push([inc.lat - 0.002, inc.lon - 0.002, heatIntensity * 0.85])
+          heatPoints.push([inc.lat + 0.002, inc.lon - 0.002, heatIntensity * 0.85])
+          heatPoints.push([inc.lat - 0.002, inc.lon + 0.002, heatIntensity * 0.85])
+
+          // 2. Custom pulsing event disruption badge
+          let emoji = '⚠️'
+          if (inc.category === 'temple_fest') emoji = '🎪'
+          else if (inc.category === 'accident') emoji = '💥'
+          else if (inc.category === 'concert') emoji = '🎸'
+          else if (inc.category === 'construction') emoji = '🚧'
+          else if (inc.category === 'weather_hazard') emoji = '⛈️'
+          else if (inc.category === 'procession') emoji = '🚩'
+
+          const incHtml = `
+            <div style="
+              position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 38px;
+              height: 38px;
+              background: #991b1b;
+              color: white;
+              border: 2.5px solid #fecaca;
+              border-radius: 50%;
+              box-shadow: 0 4px 18px rgba(220,38,38,0.7);
+              cursor: pointer;
+              font-size: 19px;
+            ">
+              <span style="
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                border: 2px solid #ef4444;
+                animation: ping 1.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+                opacity: 0.85;
+                pointer-events: none;
+              "></span>
+              <span>${emoji}</span>
+            </div>
+          `
+
+          const incIcon = L.divIcon({
+            html: incHtml,
+            className: '',
+            iconSize: [38, 38],
+            iconAnchor: [19, 19],
+          })
+
+          const marker = L.marker([inc.lat, inc.lon], { icon: incIcon, zIndexOffset: 3000 }).addTo(map)
+          marker.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 12px; color: #2c2825; padding: 4px; min-width: 210px;">
+              <div style="display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800; color: #dc2626; text-transform: uppercase;">
+                <span>${emoji} REPORTED EVENT DISRUPTION</span>
+              </div>
+              <b style="font-size: 13px; color: #2c2825; display: block; margin-top: 3px;">${inc.title}</b>
+              <p style="font-size: 11px; color: #6b625b; margin: 4px 0;">${inc.description || ''}</p>
+              <div style="margin-top: 6px; padding: 6px; background: #fef2f2; border-radius: 8px; border: 1px solid #fee2e2;">
+                <div style="color: #b91c1c; font-weight: 800;">Delay Impact: +${inc.expected_delay_mins} mins</div>
+                <div style="color: #991b1b; font-size: 10px;">Radius: ${inc.impact_radius_meters}m · Severity: ${inc.severity.toUpperCase()}</div>
+                <div style="color: #7f1d1d; font-size: 10px; font-family: monospace; margin-top: 2px;">Coords: ${inc.lat.toFixed(4)}° N, ${inc.lon.toFixed(4)}° E</div>
+              </div>
+              <button
+                onclick="window.__resolveIncident('${inc.id}')"
+                style="margin-top: 8px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 4px; background: #dc2626; color: white; border: none; border-radius: 6px; padding: 6px 10px; font-size: 11px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 6px rgba(220,38,38,0.3);"
+              >
+                <span>✕ Cancel & Clear Disruption</span>
+              </button>
+            </div>
+          `)
+
+          incidentMarkersRef.current.push(marker)
+        }
+      })
+
       // Render Leaflet Heatmap Layer
       if (L.heatLayer && heatPoints.length > 0 && mapLayerMode !== 'flow') {
         const heat = L.heatLayer(heatPoints, {
-          radius: 32,
-          blur: 24,
+          radius: 34,
+          blur: 25,
           maxZoom: 16,
           max: 1.0,
           gradient: {
@@ -698,12 +825,12 @@ export function TrafficMapView({
     }
   }
 
-  // Re-render when corridors, activeCorridor, recommendations, or layer mode change
+  // Re-render when corridors, activeCorridor, recommendations, incidents, or layer mode change
   useEffect(() => {
     if (mapRef.current && (window as any).L) {
       renderMapObjects((window as any).L, mapRef.current)
     }
-  }, [corridors, activeCorridor, recommendations, showRecommendations, mapLayerMode])
+  }, [corridors, activeCorridor, recommendations, showRecommendations, incidents, mapLayerMode])
 
   function handleLayerMode(mode: 'hybrid' | 'heatmap' | 'flow') {
     setMapLayerMode(mode)
