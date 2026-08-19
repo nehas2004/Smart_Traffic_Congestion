@@ -174,6 +174,7 @@ export default function AdminOverviewPage() {
         corridors={corridors}
         bottlenecks={bottlenecks}
         recommendations={recommendations}
+        cityName={activeSectorName}
       />
 
       {/* DECISION SUPPORT HIGH PRIORITY QUEUE */}
