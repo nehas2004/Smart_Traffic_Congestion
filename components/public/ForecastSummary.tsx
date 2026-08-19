@@ -2,7 +2,7 @@
 
 // ── Public-safe Traffic object — FROZEN SHAPE per SHARED_CONTRACT.md ──────────
 export interface TrafficCorridor {
-  corridor_id: number
+  corridor_id: number | string
   city?: string
   corridor_name: string
   timestamp: string
@@ -10,6 +10,7 @@ export interface TrafficCorridor {
   predicted_congestion: number
   severity: 'critical' | 'high' | 'medium' | 'low'
   confidence: number
+  coordinates?: [number, number]
 }
 
 interface Props {

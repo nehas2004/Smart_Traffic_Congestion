@@ -23,15 +23,25 @@ export default function AdminTrafficMapPage() {
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [selectedCorridorId, setSelectedCorridorId] = useState<string>('corr-01')
+  const [activeCity, setActiveCity] = useState('Kothamangalam')
   const [loading, setLoading] = useState(true)
 
-  async function loadData() {
+  async function loadData(sector?: { lat: number; lon: number; name: string }) {
     setLoading(true)
     try {
+      let sec = sector
+      if (!sec) {
+        try {
+          const s = localStorage.getItem('planner_active_city')
+          if (s) sec = JSON.parse(s)
+        } catch (_) {}
+      }
+      if (sec) setActiveCity(sec.name)
+
       const [cData, bData, rData] = await Promise.all([
-        fetchCurrentTraffic(),
-        fetchBottlenecks(),
-        fetchRecommendations(),
+        fetchCurrentTraffic(sec),
+        fetchBottlenecks(sec),
+        fetchRecommendations(sec),
       ])
       setCorridors(cData as CorridorDetail[])
       setBottlenecks(bData)
@@ -43,6 +53,14 @@ export default function AdminTrafficMapPage() {
 
   useEffect(() => {
     loadData()
+
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        loadData(e.detail)
+      }
+    }
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
   }, [])
 
   const selectedRecommendation = recommendations.find(
@@ -86,17 +104,20 @@ export default function AdminTrafficMapPage() {
               <ArrowLeft className="size-3.5" /> Overview
             </Link>
             <span className="text-xs text-[#e8e0d5]">/</span>
-            <span className="text-xs font-bold text-[#a67c52]">Traffic Congestion Surveillance</span>
+            <span className="text-xs font-bold text-[#a67c52]">10km Radius Coordinate Surveillance</span>
           </div>
           <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825]">
-            Network Congestion & Location Intelligence
+            Live 10km Congestion Grid & Location Intelligence
           </h1>
+          <p className="text-xs text-[#9e9189] font-mono mt-0.5">
+            Active Grid Center: {activeCity} · Radius: 10.0 km
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={loadData}
+            onClick={() => loadData()}
             className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-sm hover:bg-[#faf8f5]"
           >
             <RefreshCw className="size-3.5 text-[#a67c52]" />
@@ -109,6 +130,7 @@ export default function AdminTrafficMapPage() {
       <TrafficMapView
         corridors={corridors}
         bottlenecks={bottlenecks}
+        recommendations={recommendations}
         selectedCorridorId={selectedCorridorId}
         onSelectCorridor={(id) => setSelectedCorridorId(id)}
       />

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { CorridorDetail, BottleneckItem, SeverityLevel } from '@/types/traffic'
+import { CorridorDetail, BottleneckItem, SeverityLevel, TrafficRecommendation } from '@/types/traffic'
 import {
   MapPin,
   Layers,
@@ -19,13 +19,18 @@ import {
   AlertCircle,
   TrendingUp,
   X,
+  Sparkles,
+  Flame,
+  ShieldAlert,
 } from 'lucide-react'
 
 interface TrafficMapViewProps {
   corridors: CorridorDetail[]
   bottlenecks: BottleneckItem[]
+  recommendations?: TrafficRecommendation[]
   selectedCorridorId?: string
   onSelectCorridor?: (corridorId: string) => void
+  onSelectRecommendation?: (recId: string) => void
 }
 
 const severityHex: Record<SeverityLevel, string> = {
@@ -49,25 +54,50 @@ const QUICK_CITIES = [
 export function TrafficMapView({
   corridors: initialCorridors,
   bottlenecks: initialBottlenecks,
+  recommendations: initialRecommendations = [],
   selectedCorridorId,
   onSelectCorridor,
+  onSelectRecommendation,
 }: TrafficMapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<any>(null)
   const polylinesRef = useRef<any[]>([])
   const markersRef = useRef<any[]>([])
+  const recMarkersRef = useRef<any[]>([])
+  const radiusCircleRef = useRef<any>(null)
   const searchDebounceRef = useRef<any>(null)
 
-  const [currentCityName, setCurrentCityName] = useState<string>('Kothamangalam Grid')
+  const [currentCityName, setCurrentCityName] = useState<string>('Kothamangalam (10km Sector)')
   const [currentCenter, setCurrentCenter] = useState<[number, number]>([10.0601, 76.6214])
   const [corridors, setCorridors] = useState<CorridorDetail[]>(initialCorridors)
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>(initialBottlenecks)
+  const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>(initialRecommendations)
+  const [showRecommendations, setShowRecommendations] = useState(true)
+
+  // Listen to city changes from the Global City Selector Modal
+  useEffect(() => {
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        const { lat, lon, name } = e.detail
+        handleSelectLocation(lat, lon, name)
+      }
+    }
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
+  }, [])
 
   const [activeCorridor, setActiveCorridor] = useState<CorridorDetail | null>(
     initialCorridors.find((c) => c.corridor_id === selectedCorridorId) || initialCorridors[0] || null
   )
   const [showFlowOverlay, setShowFlowOverlay] = useState(true)
   const [flowLayerInstance, setFlowLayerInstance] = useState<any>(null)
+
+  // Update recommendations when prop changes
+  useEffect(() => {
+    if (initialRecommendations && initialRecommendations.length > 0) {
+      setRecommendations(initialRecommendations)
+    }
+  }, [initialRecommendations])
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('')
@@ -213,6 +243,7 @@ export function TrafficMapView({
           severity: severity,
           avg_delay_mins: Math.max(6, Math.round((freeFlowSpeed - currentSpeed) * 0.9)),
           confidence: 0.94,
+          trend_percent: 6,
           coordinates: [lat, lon],
         },
         {
@@ -224,6 +255,7 @@ export function TrafficMapView({
           severity: secondaryCorridor.severity,
           avg_delay_mins: Math.max(3, Math.round((freeFlowSpeed - currentSpeed) * 0.5)),
           confidence: 0.88,
+          trend_percent: 3,
           coordinates: [lat + 0.003, lon - 0.004],
         },
       ]
@@ -293,6 +325,9 @@ export function TrafficMapView({
     }
   }
 
+  const [mapLayerMode, setMapLayerMode] = useState<'hybrid' | 'heatmap' | 'flow'>('hybrid')
+  const heatLayerRef = useRef<any>(null)
+
   // Initial Leaflet Map Setup
   useEffect(() => {
     if (!containerRef.current) return
@@ -348,12 +383,26 @@ export function TrafficMapView({
         document.head.appendChild(link)
       }
 
+      const loadHeat = (L: any) => {
+        if ((L as any).heatLayer) {
+          initMap(L)
+        } else if (!document.getElementById('leaflet-heat-admin-js')) {
+          const script = document.createElement('script')
+          script.id = 'leaflet-heat-admin-js'
+          script.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js'
+          script.onload = () => initMap(L)
+          document.head.appendChild(script)
+        } else {
+          initMap(L)
+        }
+      }
+
       if ((window as any).L) {
-        initMap((window as any).L)
+        loadHeat((window as any).L)
       } else {
         const script = document.createElement('script')
         script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = () => initMap((window as any).L)
+        script.onload = () => loadHeat((window as any).L)
         document.head.appendChild(script)
       }
     }
@@ -376,14 +425,48 @@ export function TrafficMapView({
       // Clear existing
       polylinesRef.current.forEach((p) => { try { p.remove() } catch (_) {} })
       markersRef.current.forEach((m) => { try { m.remove() } catch (_) {} })
+      recMarkersRef.current.forEach((m) => { try { m.remove() } catch (_) {} })
       polylinesRef.current = []
       markersRef.current = []
+      recMarkersRef.current = []
+
+      if (heatLayerRef.current) {
+        try { map.removeLayer(heatLayerRef.current) } catch (_) {}
+        heatLayerRef.current = null
+      }
+
+      // Draw 10km Radius Surveillance Boundary Circle
+      if (radiusCircleRef.current) {
+        try { map.removeLayer(radiusCircleRef.current) } catch (_) {}
+        radiusCircleRef.current = null
+      }
+      const radiusCircle = L.circle(currentCenter, {
+        radius: 10000,
+        color: '#2563eb',
+        weight: 2,
+        dashArray: '6, 8',
+        fillColor: '#3b82f6',
+        fillOpacity: 0.05,
+      }).addTo(map)
+      radiusCircle.bindTooltip(`<b>10 km Surveillance Sector</b><br/>${currentCityName}`, {
+        permanent: false,
+        direction: 'center',
+      })
+      radiusCircleRef.current = radiusCircle
+
+      const heatPoints: [number, number, number][] = []
 
       // Corridors
       corridors.forEach((corr) => {
         if (corr.coordinates && corr.coordinates.length > 1) {
           const color = severityHex[corr.severity] || '#a67c52'
           const isSelected = activeCorridor?.corridor_id === corr.corridor_id
+
+          // Sample coordinates for thermal heatmap
+          const intensity = Math.min(1.0, Math.max(0.25, (corr.current_congestion || 30) / 100))
+          corr.coordinates.forEach((pt) => {
+            heatPoints.push([pt[0], pt[1], intensity])
+          })
 
           // Glow line
           const polyGlow = L.polyline(corr.coordinates, {
@@ -405,7 +488,9 @@ export function TrafficMapView({
           })
 
           polyline.bindTooltip(
-            `<strong>${corr.corridor_name}</strong><br/>Congestion: ${corr.current_congestion}% · ${corr.severity.toUpperCase()}`,
+            `<strong>Lat: ${corr.coordinates[0][0].toFixed(4)}°, Lon: ${corr.coordinates[0][1].toFixed(4)}°</strong><br/>` +
+            `Speed: ${corr.current_speed_kmh} km/h (Free Flow: ${corr.free_flow_speed_kmh} km/h)<br/>` +
+            `Congestion: ${corr.current_congestion}% · ${corr.severity.toUpperCase()}`,
             { direction: 'top', className: 'map-custom-tooltip' }
           )
 
@@ -416,6 +501,11 @@ export function TrafficMapView({
       // Bottlenecks
       bottlenecks.forEach((bn) => {
         if (bn.coordinates) {
+          // Add heavy heat intensity to bottleneck hotspots
+          heatPoints.push([bn.coordinates[0], bn.coordinates[1], 0.95])
+          heatPoints.push([bn.coordinates[0] + 0.001, bn.coordinates[1] + 0.001, 0.75])
+          heatPoints.push([bn.coordinates[0] - 0.001, bn.coordinates[1] - 0.001, 0.75])
+
           const pinHtml = `
             <div style="
               position: relative;
@@ -457,11 +547,11 @@ export function TrafficMapView({
           const marker = L.marker(bn.coordinates, { icon: customIcon }).addTo(map)
           marker.bindPopup(`
             <div style="font-family: sans-serif; font-size: 12px; color: #2c2825; padding: 4px; min-width: 170px;">
-              <div style="font-size: 11px; font-weight: 700; color: #9e9189; text-transform: uppercase;">HOTSPOT ALERT</div>
-              <b style="font-size: 13px; color: #2c2825;">${bn.corridor_name}</b><br/>
+              <div style="font-size: 11px; font-weight: 700; color: #9e9189; text-transform: uppercase;">HOTSPOT COORDINATES</div>
+              <b style="font-size: 13px; color: #2c2825;">${bn.coordinates[0].toFixed(4)}° N, ${bn.coordinates[1].toFixed(4)}° E</b><br/>
               <div style="margin-top: 4px;">
                 <span style="color: #dc2626; font-weight: bold;">+${bn.avg_delay_mins} min delay</span><br/>
-                <span style="color: #6b625b;">Window: ${bn.window}</span><br/>
+                <span style="color: #6b625b;">Severity: ${bn.severity.toUpperCase()}</span><br/>
                 <span style="color: #9e9189;">Confidence: ${(bn.confidence * 100).toFixed(0)}%</span>
               </div>
             </div>
@@ -478,27 +568,158 @@ export function TrafficMapView({
           markersRef.current.push(marker)
         }
       })
+
+      // AI Recommendations Map Pins and Heatmap Points
+      if (showRecommendations && recommendations && recommendations.length > 0) {
+        recommendations.forEach((rec) => {
+          // Determine coordinate for the recommendation
+          let coords = rec.bottleneck?.coordinates
+          if (!coords) {
+            const matchedCorr = corridors.find((c) => c.corridor_id === rec.corridor_id)
+            if (matchedCorr?.coordinates && matchedCorr.coordinates.length > 0) {
+              coords = matchedCorr.coordinates[Math.floor(matchedCorr.coordinates.length / 2)]
+            }
+          }
+
+          if (coords) {
+            // Add to heat points with high intensity
+            const intensity = rec.priority === 'high' ? 0.98 : rec.priority === 'medium' ? 0.85 : 0.65
+            heatPoints.push([coords[0], coords[1], intensity])
+            heatPoints.push([coords[0] + 0.0015, coords[1] + 0.0015, intensity * 0.8])
+            heatPoints.push([coords[0] - 0.0015, coords[1] - 0.0015, intensity * 0.8])
+
+            // Custom Action Badge Icon
+            let actionEmoji = '🚦'
+            if (rec.action_type === 'dynamic_reroute') {
+              actionEmoji = '🔀'
+            } else if (rec.action_type === 'incident_dispatch') {
+              actionEmoji = '👮'
+            } else if (rec.action_type === 'lane_reversal') {
+              actionEmoji = '🔄'
+            } else if (rec.action_type === 'speed_limit_adjustment') {
+              actionEmoji = '⚡'
+            }
+
+            const priorityColor = rec.priority === 'high' ? '#dc2626' : rec.priority === 'medium' ? '#ea580c' : '#16a34a'
+
+            const recHtml = `
+              <div style="
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                background: #2c2825;
+                color: white;
+                border: 2px solid ${priorityColor};
+                border-radius: 16px;
+                padding: 4px 8px;
+                box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+                cursor: pointer;
+                white-space: nowrap;
+                font-family: system-ui, sans-serif;
+              ">
+                <span style="
+                  position: absolute;
+                  inset: -3px;
+                  border-radius: 18px;
+                  border: 2px solid ${priorityColor};
+                  animation: ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+                  opacity: 0.6;
+                  pointer-events: none;
+                "></span>
+                <span style="font-size: 13px;">${actionEmoji}</span>
+                <div style="display: flex; flex-direction: column; text-align: left;">
+                  <span style="font-size: 8px; font-weight: 800; text-transform: uppercase; color: #c8a97e; letter-spacing: 0.04em;">AI INTERVENTION</span>
+                  <span style="font-size: 11px; font-weight: 800; color: #ffffff;">-${rec.expected_delay_reduction_mins}m delay</span>
+                </div>
+              </div>
+            `
+
+            const recIcon = L.divIcon({
+              html: recHtml,
+              className: '',
+              iconSize: [120, 34],
+              iconAnchor: [60, 17],
+            })
+
+            const marker = L.marker(coords, { icon: recIcon, zIndexOffset: 1000 }).addTo(map)
+            marker.bindPopup(`
+              <div style="font-family: system-ui, sans-serif; font-size: 12px; color: #2c2825; padding: 6px; min-width: 220px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
+                  <span style="font-size: 10px; font-weight: 800; color: ${priorityColor}; text-transform: uppercase; background: ${priorityColor}15; padding: 2px 6px; border-radius: 4px;">
+                    ${rec.priority.toUpperCase()} PRIORITY
+                  </span>
+                  <span style="font-size: 10px; font-weight: 700; color: #9e9189;">${Math.round(rec.confidence * 100)}% Confidence</span>
+                </div>
+                <div style="font-weight: 800; font-size: 13px; color: #2c2825; margin-bottom: 3px;">${rec.title}</div>
+                <div style="font-size: 11px; color: #6b625b; line-height: 1.4; margin-bottom: 8px;">${rec.description}</div>
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; background: #faf8f5; border: 1px solid #e8e0d5; border-radius: 6px; font-size: 11px;">
+                  <span style="color: #9e9189;">Expected Mitigation:</span>
+                  <span style="font-weight: 800; color: #16a34a;">-${rec.expected_delay_reduction_mins} min delay</span>
+                </div>
+                <div style="margin-top: 6px; font-size: 10px; color: #9e9189;">Corridor: <strong>${rec.corridor_name}</strong></div>
+              </div>
+            `)
+
+            marker.on('click', () => {
+              const matched = corridors.find((c) => c.corridor_id === rec.corridor_id)
+              if (matched) {
+                setActiveCorridor(matched)
+                if (onSelectCorridor) onSelectCorridor(matched.corridor_id)
+              }
+              if (onSelectRecommendation) onSelectRecommendation(rec.id)
+            })
+
+            recMarkersRef.current.push(marker)
+          }
+        })
+      }
+
+      // Render Leaflet Heatmap Layer
+      if (L.heatLayer && heatPoints.length > 0 && mapLayerMode !== 'flow') {
+        const heat = L.heatLayer(heatPoints, {
+          radius: 32,
+          blur: 24,
+          maxZoom: 16,
+          max: 1.0,
+          gradient: {
+            0.2: '#10b981',
+            0.4: '#eab308',
+            0.6: '#f97316',
+            0.8: '#dc2626',
+            1.0: '#7f1d1d',
+          },
+        })
+        heat.addTo(map)
+        heatLayerRef.current = heat
+      }
     } catch (err) {
       console.warn('Error in renderMapObjects:', err)
     }
   }
 
-  // Re-render when corridors or activeCorridor change
+  // Re-render when corridors, activeCorridor, recommendations, or layer mode change
   useEffect(() => {
     if (mapRef.current && (window as any).L) {
       renderMapObjects((window as any).L, mapRef.current)
     }
-  }, [corridors, activeCorridor])
+  }, [corridors, activeCorridor, recommendations, showRecommendations, mapLayerMode])
 
-  function toggleFlow() {
-    if (flowLayerInstance && mapRef.current) {
-      if (showFlowOverlay) {
-        mapRef.current.removeLayer(flowLayerInstance)
-        setShowFlowOverlay(false)
-      } else {
-        flowLayerInstance.addTo(mapRef.current)
-        setShowFlowOverlay(true)
-      }
+  function handleLayerMode(mode: 'hybrid' | 'heatmap' | 'flow') {
+    setMapLayerMode(mode)
+    const map = mapRef.current
+    if (!map) return
+
+    if (mode === 'hybrid') {
+      if (flowLayerInstance) flowLayerInstance.addTo(map)
+      setShowFlowOverlay(true)
+    } else if (mode === 'heatmap') {
+      if (flowLayerInstance) map.removeLayer(flowLayerInstance)
+      setShowFlowOverlay(false)
+    } else if (mode === 'flow') {
+      if (flowLayerInstance) flowLayerInstance.addTo(map)
+      if (heatLayerRef.current) map.removeLayer(heatLayerRef.current)
+      setShowFlowOverlay(true)
     }
   }
 
@@ -511,6 +732,33 @@ export function TrafficMapView({
       })
     } else if (mapRef.current) {
       mapRef.current.flyTo(currentCenter, 14)
+    }
+  }
+
+  function fitAllNetwork() {
+    const map = mapRef.current
+    const L = (window as any).L
+    if (!map || !L) return
+
+    const allPts: [number, number][] = []
+
+    // Collect all corridor points
+    corridors.forEach((c) => {
+      if (c.coordinates) c.coordinates.forEach((pt) => allPts.push(pt))
+    })
+
+    // Collect all bottleneck points
+    bottlenecks.forEach((b) => {
+      if (b.coordinates) allPts.push(b.coordinates)
+    })
+
+    // Collect all recommendation points
+    recommendations.forEach((r) => {
+      if (r.bottleneck?.coordinates) allPts.push(r.bottleneck.coordinates)
+    })
+
+    if (allPts.length > 0) {
+      map.fitBounds(L.latLngBounds(allPts), { padding: [60, 60], maxZoom: 15 })
     }
   }
 
@@ -642,38 +890,82 @@ export function TrafficMapView({
           <div ref={containerRef} className="h-full w-full" />
 
           {/* Map Control Floating Toolbar */}
-          <div className="absolute left-4 top-4 z-[400] flex items-center gap-2 rounded-xl border border-[#e8e0d5] bg-white/95 p-1.5 shadow-md backdrop-blur-md">
+          <div className="absolute left-4 top-4 z-[400] flex flex-wrap items-center gap-2 rounded-xl border border-[#e8e0d5] bg-white/95 p-1.5 shadow-md backdrop-blur-md max-w-[95%]">
+            <div className="flex items-center gap-1 border-r border-[#e8e0d5] pr-2 mr-1">
+              <button
+                type="button"
+                onClick={() => handleLayerMode('hybrid')}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  mapLayerMode === 'hybrid'
+                    ? 'bg-[#2c2825] text-white'
+                    : 'bg-transparent text-[#6b625b] hover:bg-[#f5f2ee]'
+                }`}
+              >
+                <Layers className="size-3.5" />
+                Hybrid
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLayerMode('heatmap')}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  mapLayerMode === 'heatmap'
+                    ? 'bg-[#2c2825] text-white'
+                    : 'bg-transparent text-[#6b625b] hover:bg-[#f5f2ee]'
+                }`}
+              >
+                <TrendingUp className="size-3.5" />
+                Heatmap
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLayerMode('flow')}
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                  mapLayerMode === 'flow'
+                    ? 'bg-[#2c2825] text-white'
+                    : 'bg-transparent text-[#6b625b] hover:bg-[#f5f2ee]'
+                }`}
+              >
+                <Gauge className="size-3.5" />
+                Flow
+              </button>
+            </div>
+
+            {/* Recommendations Toggle on Map */}
             <button
               type="button"
-              onClick={toggleFlow}
+              onClick={() => setShowRecommendations(!showRecommendations)}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
-                showFlowOverlay
-                  ? 'bg-[#2c2825] text-white'
+                showRecommendations
+                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
                   : 'bg-transparent text-[#6b625b] hover:bg-[#f5f2ee]'
               }`}
             >
-              <Layers className="size-3.5" />
-              TomTom Live Flow
+              <Sparkles className="size-3.5 text-amber-600" />
+              <span>Interventions ({recommendations.length})</span>
             </button>
 
+            {/* Panoramic Fit All Network Button */}
             <button
               type="button"
-              onClick={centerOnSelected}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold text-[#6b625b] hover:bg-[#f5f2ee]"
+              onClick={fitAllNetwork}
+              className="flex items-center gap-1.5 rounded-lg bg-[#2c2825] px-2.5 py-1 text-xs font-bold text-[#c8a97e] shadow-sm hover:bg-[#3d3834]"
             >
               <Maximize2 className="size-3.5" />
-              Focus Sector
+              <span>Show All on Map</span>
             </button>
 
             {isFetchingTraffic && (
               <span className="flex items-center gap-1 text-[11px] font-bold text-[#a67c52] bg-[#faf8f5] px-2 py-0.5 rounded-md">
-                <RefreshCw className="size-3 animate-spin" /> Fetching Live Grid...
+                <RefreshCw className="size-3.5 animate-spin" /> Fetching Live Grid...
               </span>
             )}
           </div>
 
           {/* Map Legend Overlay */}
           <div className="absolute bottom-4 left-4 z-[400] hidden sm:flex items-center gap-4 rounded-xl border border-[#e8e0d5] bg-white/90 px-3.5 py-2 shadow-md backdrop-blur-md text-[11px] font-semibold text-[#2c2825]">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189] border-r border-[#e8e0d5] pr-2">
+              {mapLayerMode === 'flow' ? 'Traffic Flow' : 'Congestion Density'}
+            </div>
             <div className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-[#16a34a]" /> Free Flow
             </div>
@@ -684,7 +976,7 @@ export function TrafficMapView({
               <span className="size-2.5 rounded-full bg-[#f97316]" /> Heavy
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="size-2.5 rounded-full bg-[#dc2626]" /> Severe / Critical
+              <span className="size-2.5 rounded-full bg-[#dc2626]" /> Severe / Hotspot
             </div>
           </div>
         </div>
@@ -708,143 +1000,201 @@ export function TrafficMapView({
             </p>
           </div>
 
-          {activeCorridor ? (
-            <div className="flex-1 overflow-y-auto p-5 space-y-4">
-              {/* Selected Corridor Banner */}
-              <div className="rounded-xl border border-[#c8a97e]/30 bg-[#faf8f5] p-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#a67c52]">
-                  Focused Corridor Artery
-                </span>
-                <p className="text-sm font-extrabold text-[#2c2825]">{activeCorridor.corridor_name}</p>
-              </div>
-
-              {/* Speed & Congestion Gauges */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189] flex items-center gap-1">
-                    <Gauge className="size-3" /> Current Speed
+          <div className="flex-1 overflow-y-auto p-5 space-y-4">
+            {/* AI MITIGATION INTERVENTIONS SECTION */}
+            {recommendations && recommendations.length > 0 && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                    <Sparkles className="size-3.5 text-amber-600" />
+                    All Active AI Interventions ({recommendations.length})
                   </span>
-                  <p className="mt-1 font-mono text-xl font-extrabold text-[#2c2825]">
-                    {activeCorridor.current_speed_kmh || 24} <span className="text-xs font-normal text-[#9e9189]">km/h</span>
-                  </p>
-                  <p className="text-[10px] text-[#9e9189]">
-                    Free flow: {activeCorridor.free_flow_speed_kmh || 48} km/h
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189] flex items-center gap-1">
-                    <Activity className="size-3" /> Congestion
-                  </span>
-                  <p className="mt-1 font-mono text-xl font-extrabold text-[#a67c52]">
-                    {activeCorridor.current_congestion}%
-                  </p>
-                  <p className="text-[10px] text-[#a67c52] font-semibold">
-                    Forecast: {activeCorridor.predicted_congestion}% (+60m)
-                  </p>
-                </div>
-              </div>
-
-              {/* Corridor Metadata Details */}
-              <div className="rounded-xl border border-[#e8e0d5] divide-y divide-[#f0ece7] text-xs">
-                <div className="flex justify-between p-3">
-                  <span className="text-[#9e9189]">Status Severity</span>
-                  <span
-                    className="font-bold uppercase tracking-wider"
-                    style={{ color: severityHex[activeCorridor.severity] }}
+                  <button
+                    type="button"
+                    onClick={fitAllNetwork}
+                    className="text-[10px] font-bold text-[#a67c52] hover:underline"
                   >
-                    {activeCorridor.severity}
-                  </span>
+                    Fit Map View
+                  </button>
                 </div>
-                <div className="flex justify-between p-3">
-                  <span className="text-[#9e9189]">Segment Length</span>
-                  <span className="font-semibold text-[#2c2825]">{activeCorridor.length_km || 4.2} km</span>
-                </div>
-                <div className="flex justify-between p-3">
-                  <span className="text-[#9e9189]">Avg Peak Delay</span>
-                  <span className="font-semibold text-[#2c2825]">+{activeCorridor.historical_avg_delay || 12} min</span>
-                </div>
-                <div className="flex justify-between p-3">
-                  <span className="text-[#9e9189]">Model Confidence</span>
-                  <span className="font-bold text-emerald-700">{(activeCorridor.confidence * 100).toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between p-3">
-                  <span className="text-[#9e9189]">Active Hotspots / Incidents</span>
-                  <span className="font-semibold text-[#2c2825]">
-                    {activeCorridor.active_incidents || bottlenecks.length} detected
-                  </span>
-                </div>
-              </div>
 
-              {/* Corridors in this Searched Area */}
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
-                  Detected Arteries in Sector ({corridors.length})
-                </span>
-                <div className="mt-2 space-y-1.5">
-                  {corridors.map((c) => {
-                    const isSel = c.corridor_id === activeCorridor.corridor_id
+                <div className="space-y-2">
+                  {recommendations.map((rec) => {
+                    const priorityColor = rec.priority === 'high' ? '#dc2626' : rec.priority === 'medium' ? '#ea580c' : '#16a34a'
+                    const isMatched = activeCorridor?.corridor_id === rec.corridor_id
+
                     return (
-                      <button
-                        key={c.corridor_id}
-                        type="button"
+                      <div
+                        key={rec.id}
                         onClick={() => {
-                          setActiveCorridor(c)
-                          if (onSelectCorridor) onSelectCorridor(c.corridor_id)
+                          const matched = corridors.find((c) => c.corridor_id === rec.corridor_id)
+                          if (matched) {
+                            setActiveCorridor(matched)
+                            if (onSelectCorridor) onSelectCorridor(matched.corridor_id)
+                            if (matched.coordinates && matched.coordinates.length > 0 && mapRef.current && (window as any).L) {
+                              mapRef.current.flyTo(matched.coordinates[0], 15)
+                            }
+                          }
+                          if (onSelectRecommendation) onSelectRecommendation(rec.id)
                         }}
-                        className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
-                          isSel
-                            ? 'bg-[#2c2825] text-white shadow-sm'
-                            : 'bg-[#faf8f5] text-[#2c2825] border border-[#e8e0d5] hover:bg-[#f0ece7]'
+                        className={`rounded-xl border p-2.5 transition-all cursor-pointer ${
+                          isMatched
+                            ? 'border-[#2c2825] bg-white shadow-sm ring-1 ring-[#2c2825]'
+                            : 'border-amber-200/80 bg-white hover:border-amber-300'
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
+                        <div className="flex items-center justify-between gap-2 mb-1">
                           <span
-                            className="size-2 rounded-full shrink-0"
-                            style={{ backgroundColor: severityHex[c.severity] }}
-                          />
-                          <span className="truncate">{c.corridor_name}</span>
+                            className="text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                            style={{ color: priorityColor, backgroundColor: `${priorityColor}15` }}
+                          >
+                            {rec.priority} Priority
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            -{rec.expected_delay_reduction_mins}m delay
+                          </span>
                         </div>
-                        <span className="font-mono text-[11px] opacity-80 shrink-0">
-                          {c.current_congestion}%
-                        </span>
-                      </button>
+                        <p className="text-xs font-bold text-[#2c2825] leading-snug">{rec.title}</p>
+                        <p className="text-[10px] text-[#9e9189] mt-0.5 truncate">{rec.corridor_name}</p>
+                      </div>
                     )
                   })}
                 </div>
               </div>
+            )}
 
-              {/* Detected Bottlenecks / Hotspots */}
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
-                  Active Congestion Hotspots ({bottlenecks.length})
-                </span>
-                <div className="mt-2 space-y-1.5">
-                  {bottlenecks.map((bn) => (
-                    <div
-                      key={bn.id}
-                      className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50/50 p-2.5 text-xs text-[#2c2825]"
-                    >
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="size-3.5 text-red-600 shrink-0" />
-                        <div>
-                          <p className="font-bold leading-tight">{bn.corridor_name}</p>
-                          <p className="text-[10px] text-[#9e9189]">{bn.window}</p>
-                        </div>
-                      </div>
-                      <span className="font-mono font-bold text-red-600 shrink-0">
-                        +{bn.avg_delay_mins}m
-                      </span>
-                    </div>
-                  ))}
+            {activeCorridor ? (
+              <>
+                {/* Selected Corridor Banner */}
+                <div className="rounded-xl border border-[#c8a97e]/30 bg-[#faf8f5] p-3">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#a67c52]">
+                    Focused Corridor Artery
+                  </span>
+                  <p className="text-sm font-extrabold text-[#2c2825]">{activeCorridor.corridor_name}</p>
                 </div>
+
+                {/* Speed & Congestion Gauges */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189] flex items-center gap-1">
+                      <Gauge className="size-3" /> Current Speed
+                    </span>
+                    <p className="mt-1 font-mono text-xl font-extrabold text-[#2c2825]">
+                      {activeCorridor.current_speed_kmh || 24} <span className="text-xs font-normal text-[#9e9189]">km/h</span>
+                    </p>
+                    <p className="text-[10px] text-[#9e9189]">
+                      Free flow: {activeCorridor.free_flow_speed_kmh || 48} km/h
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189] flex items-center gap-1">
+                      <Activity className="size-3" /> Congestion
+                    </span>
+                    <p className="mt-1 font-mono text-xl font-extrabold text-[#a67c52]">
+                      {activeCorridor.current_congestion}%
+                    </p>
+                    <p className="text-[10px] text-[#a67c52] font-semibold">
+                      Forecast: {activeCorridor.predicted_congestion}% (+60m)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Corridor Metadata Details */}
+                <div className="rounded-xl border border-[#e8e0d5] divide-y divide-[#f0ece7] text-xs">
+                  <div className="flex justify-between p-3">
+                    <span className="text-[#9e9189]">Status Severity</span>
+                    <span
+                      className="font-bold uppercase tracking-wider"
+                      style={{ color: severityHex[activeCorridor.severity] }}
+                    >
+                      {activeCorridor.severity}
+                    </span>
+                  </div>
+                  <div className="flex justify-between p-3">
+                    <span className="text-[#9e9189]">Segment Length</span>
+                    <span className="font-semibold text-[#2c2825]">{activeCorridor.length_km || 4.2} km</span>
+                  </div>
+                  <div className="flex justify-between p-3">
+                    <span className="text-[#9e9189]">Avg Peak Delay</span>
+                    <span className="font-semibold text-[#2c2825]">+{activeCorridor.historical_avg_delay || 12} min</span>
+                  </div>
+                  <div className="flex justify-between p-3">
+                    <span className="text-[#9e9189]">Model Confidence</span>
+                    <span className="font-bold text-emerald-700">{(activeCorridor.confidence * 100).toFixed(1)}%</span>
+                  </div>
+                </div>
+
+                {/* Corridors in this Searched Area */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+                    Detected Arteries in Sector ({corridors.length})
+                  </span>
+                  <div className="mt-2 space-y-1.5">
+                    {corridors.map((c) => {
+                      const isSel = c.corridor_id === activeCorridor.corridor_id
+                      return (
+                        <button
+                          key={c.corridor_id}
+                          type="button"
+                          onClick={() => {
+                            setActiveCorridor(c)
+                            if (onSelectCorridor) onSelectCorridor(c.corridor_id)
+                          }}
+                          className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                            isSel
+                              ? 'bg-[#2c2825] text-white shadow-sm'
+                              : 'bg-[#faf8f5] text-[#2c2825] border border-[#e8e0d5] hover:bg-[#f0ece7]'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 truncate">
+                            <span
+                              className="size-2 rounded-full shrink-0"
+                              style={{ backgroundColor: severityHex[c.severity] }}
+                            />
+                            <span className="truncate">{c.corridor_name}</span>
+                          </div>
+                          <span className="font-mono text-[11px] opacity-80 shrink-0">
+                            {c.current_congestion}%
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Detected Bottlenecks / Hotspots */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+                    Active Congestion Hotspots ({bottlenecks.length})
+                  </span>
+                  <div className="mt-2 space-y-1.5">
+                    {bottlenecks.map((bn) => (
+                      <div
+                        key={bn.id}
+                        className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50/50 p-2.5 text-xs text-[#2c2825]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="size-3.5 text-red-600 shrink-0" />
+                          <div>
+                            <p className="font-bold leading-tight">{bn.corridor_name}</p>
+                            <p className="text-[10px] text-[#9e9189]">{bn.window}</p>
+                          </div>
+                        </div>
+                        <span className="font-mono font-bold text-red-600 shrink-0">
+                          +{bn.avg_delay_mins}m
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center text-xs text-[#9e9189]">
+                Search a city or click any corridor / bottleneck pin on the map to inspect live telemetry.
               </div>
-            </div>
-          ) : (
-            <div className="p-8 text-center text-xs text-[#9e9189]">
-              Search a city or click any corridor / bottleneck pin on the map to inspect live telemetry.
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
