@@ -247,9 +247,24 @@ let localDecisions: DecisionRecord[] = [
 // SHARED API CLIENT CONSUMER FUNCTIONS
 // ==========================================
 
-export async function fetchCurrentTraffic(): Promise<SharedTrafficData[]> {
+function getStoredSectorQuery(sector?: { lat: number; lon: number; name: string }) {
+  if (sector) {
+    return `lat=${sector.lat}&lon=${sector.lon}&city=${encodeURIComponent(sector.name)}`
+  }
   try {
-    const res = await fetch('/traffic/current', { cache: 'no-store' })
+    const s = localStorage.getItem('planner_active_city')
+    if (s) {
+      const parsed = JSON.parse(s)
+      return `lat=${parsed.lat}&lon=${parsed.lon}&city=${encodeURIComponent(parsed.name)}`
+    }
+  } catch (_) {}
+  return `lat=10.0601&lon=76.6214&city=Kothamangalam`
+}
+
+export async function fetchCurrentTraffic(sector?: { lat: number; lon: number; name: string }): Promise<SharedTrafficData[]> {
+  try {
+    const query = getStoredSectorQuery(sector)
+    const res = await fetch(`/api/admin/corridors?${query}`, { cache: 'no-store' })
     if (res.ok) {
       return await res.json()
     }
@@ -257,11 +272,13 @@ export async function fetchCurrentTraffic(): Promise<SharedTrafficData[]> {
   return MOCK_CORRIDORS
 }
 
-export async function fetchCorridorDetails(id: string): Promise<CorridorDetail | undefined> {
+export async function fetchCorridorDetails(id: string, sector?: { lat: number; lon: number; name: string }): Promise<CorridorDetail | undefined> {
   try {
-    const res = await fetch(`/traffic/corridors/${id}`, { cache: 'no-store' })
+    const query = getStoredSectorQuery(sector)
+    const res = await fetch(`/api/admin/corridors?${query}`, { cache: 'no-store' })
     if (res.ok) {
-      return await res.json()
+      const corridors: CorridorDetail[] = await res.json()
+      return corridors.find((c) => c.corridor_id === id) || corridors[0]
     }
   } catch {}
   return MOCK_CORRIDORS.find((c) => c.corridor_id === id) || MOCK_CORRIDORS[0]
@@ -269,12 +286,12 @@ export async function fetchCorridorDetails(id: string): Promise<CorridorDetail |
 
 export async function fetchTrafficForecast(corridorId?: string): Promise<{ hour: string; predicted_congestion: number; lower: number; upper: number; actual?: number }[]> {
   try {
-    const url = corridorId ? `/traffic/forecast?corridor_id=${corridorId}` : '/traffic/forecast'
+    const url = corridorId ? `/api/admin/forecast?corridor_id=${corridorId}` : '/api/admin/forecast'
     const res = await fetch(url, { cache: 'no-store' })
     if (res.ok) {
       return await res.json()
     }
-  } catch {}
+  } catch { }
 
   // Fallback 12-hour forecast based on gradient boosting trend
   return Array.from({ length: 12 }, (_, idx) => {
@@ -292,9 +309,10 @@ export async function fetchTrafficForecast(corridorId?: string): Promise<{ hour:
   })
 }
 
-export async function fetchBottlenecks(): Promise<BottleneckItem[]> {
+export async function fetchBottlenecks(sector?: { lat: number; lon: number; name: string }): Promise<BottleneckItem[]> {
   try {
-    const res = await fetch('/bottlenecks', { cache: 'no-store' })
+    const query = getStoredSectorQuery(sector)
+    const res = await fetch(`/api/admin/bottlenecks?${query}`, { cache: 'no-store' })
     if (res.ok) {
       return await res.json()
     }
@@ -308,13 +326,14 @@ export async function fetchEventImpact(eventId: string): Promise<EventImpact | u
     if (res.ok) {
       return await res.json()
     }
-  } catch {}
+  } catch { }
   return MOCK_EVENT_IMPACTS.find((e) => e.event_id === eventId) || MOCK_EVENT_IMPACTS[0]
 }
 
-export async function fetchRecommendations(): Promise<TrafficRecommendation[]> {
+export async function fetchRecommendations(sector?: { lat: number; lon: number; name: string }): Promise<TrafficRecommendation[]> {
   try {
-    const res = await fetch('/recommendations', { cache: 'no-store' })
+    const query = getStoredSectorQuery(sector)
+    const res = await fetch(`/api/admin/recommendations?${query}`, { cache: 'no-store' })
     if (res.ok) {
       return await res.json()
     }
@@ -324,9 +343,10 @@ export async function fetchRecommendations(): Promise<TrafficRecommendation[]> {
 
 export async function fetchDecisionHistory(): Promise<DecisionRecord[]> {
   try {
-    const res = await fetch('/admin/decisions', { cache: 'no-store' })
+    const res = await fetch('/api/admin/decisions', { cache: 'no-store' })
     if (res.ok) {
-      return await res.json()
+      const data = await res.json()
+      if (Array.isArray(data) && data.length > 0) return data
     }
   } catch {}
   return localDecisions
@@ -347,14 +367,14 @@ export async function submitDecision(payload: {
     corridor_id: payload.corridor_id,
     corridor_name: payload.corridor_name,
     action: payload.action,
-    operator: payload.operator || 'Arshad (Admin)',
+    operator: payload.operator || 'City Traffic Controller',
     timestamp: new Date().toISOString(),
-    reason_or_notes: payload.reason_or_notes || `Decision ${payload.action.toUpperCase()} by operator.`,
+    reason_or_notes: payload.reason_or_notes || `Decision ${payload.action.toUpperCase()} recorded.`,
     modified_parameters: payload.modified_parameters,
   }
 
   try {
-    const res = await fetch('/admin/decisions', {
+    const res = await fetch('/api/admin/decisions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newRecord),
@@ -364,7 +384,7 @@ export async function submitDecision(payload: {
       localDecisions = [data.record || newRecord, ...localDecisions]
       return { success: true, record: data.record || newRecord }
     }
-  } catch {}
+  } catch { }
 
   // Save to local in-memory array
   localDecisions = [newRecord, ...localDecisions]
