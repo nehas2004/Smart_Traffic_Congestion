@@ -414,3 +414,45 @@ export async function cancelReportedIncident(incidentId: string): Promise<boolea
   } catch {}
   return false
 }
+
+export interface DashboardMetrics {
+  city_name: string
+  coordinates: { lat: number; lon: number }
+  city_congestion_index: number
+  typical_baseline: number
+  congestion_change: number
+  peak_delay_forecast: number
+  peak_corridor_name: string
+  forecast_horizon_minutes: number
+  critical_bottlenecks: number
+  total_monitored_hotspots: number
+  model_performance: {
+    name: string
+    trees: number
+    mae: number
+    rmse: number
+    r2: number
+    confidence_score: number
+    horizon_minutes: number
+    features_count: number
+    evaluated_on: string
+  }
+  decision_queue: {
+    active_recommendations: number
+    requires_review: boolean
+  }
+  data_source: string
+  timestamp: string
+}
+
+export async function fetchDashboardMetrics(sector?: { lat: number; lon: number; name: string }): Promise<DashboardMetrics | null> {
+  try {
+    const query = getStoredSectorQuery(sector)
+    const res = await fetch(`/api/admin/metrics?${query}`, { cache: 'no-store' })
+    if (res.ok) {
+      return await res.json()
+    }
+  } catch {}
+  return null
+}
+

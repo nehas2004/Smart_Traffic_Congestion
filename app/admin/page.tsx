@@ -11,6 +11,8 @@ import {
   fetchRecommendations,
   fetchDecisionHistory,
   submitDecision,
+  fetchDashboardMetrics,
+  DashboardMetrics,
 } from '@/lib/admin-api'
 import {
   SharedTrafficData,
@@ -28,6 +30,7 @@ export default function AdminOverviewPage() {
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [decisions, setDecisions] = useState<DecisionRecord[]>([])
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [activeSectorName, setActiveSectorName] = useState('Kochi (Ernakulam)')
   const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0033, lon: 76.2996 })
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
@@ -45,21 +48,22 @@ export default function AdminOverviewPage() {
         } catch (_) {}
       }
       if (sec) {
-        const displayName = sec.cityName || sec.name || `${sec.lat.toFixed(4)}°, ${sec.lon.toFixed(4)}°`
-        setActiveSectorName(displayName)
+        setActiveSectorName(sec.name || sec.cityName || 'Active City Sector')
         setActiveCoords({ lat: sec.lat, lon: sec.lon })
       }
 
-      const [cData, bData, rData, dData] = await Promise.all([
+      const [cData, bData, rData, dData, mData] = await Promise.all([
         fetchCurrentTraffic(sec),
         fetchBottlenecks(sec),
         fetchRecommendations(sec),
         fetchDecisionHistory(),
+        fetchDashboardMetrics(sec),
       ])
       setCorridors(cData)
       setBottlenecks(bData)
       setRecommendations(rData)
       setDecisions(dData)
+      setMetrics(mData)
     } finally {
       setLoading(false)
       setIsRefreshing(false)
@@ -174,6 +178,7 @@ export default function AdminOverviewPage() {
         corridors={corridors}
         bottlenecks={bottlenecks}
         recommendations={recommendations}
+        metrics={metrics}
         cityName={activeSectorName}
       />
 
