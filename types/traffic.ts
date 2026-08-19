@@ -80,3 +80,30 @@ export interface DecisionRecord {
     custom_action_scope?: string
   }
 }
+
+export type IncidentCategory =
+  | 'temple_fest'
+  | 'accident'
+  | 'concert'
+  | 'construction'
+  | 'weather_hazard'
+  | 'procession'
+  | 'other'
+
+export interface ReportedIncident {
+  id: string
+  title: string
+  category: IncidentCategory
+  lat: number
+  lon: number
+  severity: SeverityLevel
+  impact_radius_meters: number
+  expected_delay_mins: number
+  start_time: string
+  end_time?: string
+  description?: string
+  reported_by: string
+  created_at: string
+  active: boolean
+}
+

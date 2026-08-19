@@ -11,9 +11,12 @@ import {
   Sparkles,
   MapPin,
   ChevronDown,
+  AlertTriangle,
+  Flame,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { SectorSelectorModal, SectorPoint } from './sector-selector-modal'
+import { ReportIncidentModal } from './report-incident-modal'
 
 const navItems = [
   { href: '/admin', label: 'Admin Overview', icon: LayoutDashboard },
@@ -27,6 +30,7 @@ export function AdminNav() {
   const [timeStr, setTimeStr] = useState<string>('')
   const [activeSector, setActiveSector] = useState<SectorPoint | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false)
 
   // Load stored coordinates or default to [10.0601, 76.6214]
   useEffect(() => {
@@ -106,6 +110,17 @@ export function AdminNav() {
             <ChevronDown className="size-3 text-blue-700 ml-1" />
           </button>
 
+          {/* REPORT INCIDENT / EVENT BUTTON */}
+          <button
+            type="button"
+            onClick={() => setIsReportModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-3 py-1.5 text-xs font-extrabold text-white shadow-md shadow-amber-600/20 transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.02]"
+            title="Report Temple Fest, Accident, Concert, or Road Hazard"
+          >
+            <Flame className="size-3.5 fill-white" />
+            <span>Report Congestion / Event</span>
+          </button>
+
           {/* Navigation Tabs */}
           <nav className="hidden lg:flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-[#f5f2ee] p-1">
             {navItems.map(({ href, label, icon: Icon }) => {
@@ -165,6 +180,14 @@ export function AdminNav() {
         currentSector={activeSector}
         onClose={() => setIsModalOpen(false)}
         onSelectSector={handleSelectSector}
+      />
+
+      {/* Report Incident Modal */}
+      <ReportIncidentModal
+        isOpen={isReportModalOpen}
+        defaultLat={activeSector?.lat || 10.0601}
+        defaultLon={activeSector?.lon || 76.6214}
+        onClose={() => setIsReportModalOpen(false)}
       />
     </>
   )
