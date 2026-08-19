@@ -21,4 +21,7 @@ node_modules
 __pycache__/
 *.pyc
 venv/
-.venv/
+.venv/
+
+# Setup script contains real API keys — share directly, not via git
+setup-env.ps1
