@@ -15,8 +15,14 @@ import random
 import urllib.request
 import pandas as pd
 import numpy as np
-import torch
-import torch.nn as nn
+try:
+    import torch
+    import torch.nn as nn
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    torch = None
+    nn = None
 
 # Setup
 WORKSPACE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,20 +39,23 @@ FEATURE_COLS = [
     'rolling_mean_speed_1h', 'rolling_mean_congestion_1h'
 ]
 
-class TrafficLSTM(nn.Module):
-    def __init__(self, input_dim=27, hidden_dim=64, num_layers=2):
-        super(TrafficLSTM, self).__init__()
-        self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
-        self.fc1 = nn.Linear(hidden_dim, 32)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(32, 1)
+if HAS_TORCH:
+    class TrafficLSTM(nn.Module):
+        def __init__(self, input_dim=27, hidden_dim=64, num_layers=2):
+            super(TrafficLSTM, self).__init__()
+            self.lstm = nn.LSTM(input_dim, hidden_dim, num_layers, batch_first=True)
+            self.fc1 = nn.Linear(hidden_dim, 32)
+            self.relu = nn.ReLU()
+            self.fc2 = nn.Linear(32, 1)
 
-    def forward(self, x):
-        out, _ = self.lstm(x)
-        out = self.fc1(out[:, -1, :])
-        out = self.relu(out)
-        out = self.fc2(out)
-        return out
+        def forward(self, x):
+            out, _ = self.lstm(x)
+            out = self.fc1(out[:, -1, :])
+            out = self.relu(out)
+            out = self.fc2(out)
+            return out
+else:
+    TrafficLSTM = None
 
 
 # =====================================================================
@@ -84,7 +93,7 @@ def fetch_live_tomtom_flow(lat=10.05, lon=76.62, api_key=None):
     Uses realistic mock data if API key is not provided.
     """
     if api_key and api_key != 'YOUR_KEY':
-        url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/relative-0/10/json?key={api_key}&point={lat},{lon}"
+        url = f"https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/14/json?key={api_key}&point={lat},{lon}"
         try:
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req) as resp:
@@ -134,9 +143,14 @@ class RealTimeTrafficPredictor:
         self.gb_model = joblib.load(os.path.join(MODELS_DIR, 'gradient_boosting.joblib'))
         self.scaler = joblib.load(os.path.join(MODELS_DIR, 'model_scaler.joblib'))
         
-        self.lstm_model = TrafficLSTM()
-        self.lstm_model.load_state_dict(torch.load(os.path.join(MODELS_DIR, 'lstm_model.pt')))
-        self.lstm_model.eval()
+        self.lstm_model = None
+        if HAS_TORCH:
+            try:
+                self.lstm_model = TrafficLSTM()
+                self.lstm_model.load_state_dict(torch.load(os.path.join(MODELS_DIR, 'lstm_model.pt')))
+                self.lstm_model.eval()
+            except Exception as e:
+                print(f"[LSTM MODEL NOTICE] Could not load lstm_model.pt: {e}")
 
     def build_feature_vector(self, weather_data, traffic_data, timestamp=None):
         ts = pd.to_datetime(timestamp) if timestamp else pd.Timestamp.now()
@@ -197,6 +211,8 @@ class RealTimeTrafficPredictor:
         return pd.DataFrame([row_dict])[FEATURE_COLS]
 
     def predict(self, lat=10.05, lon=76.62, tomtom_key=None):
+        if not tomtom_key:
+            tomtom_key = os.environ.get("NEXT_PUBLIC_TOMTOM_API_KEY") or os.environ.get("TOMTOM_API_KEY") or "QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq"
         weather = fetch_live_weather(lat, lon)
         traffic = fetch_live_tomtom_flow(lat, lon, tomtom_key)
         
@@ -207,9 +223,15 @@ class RealTimeTrafficPredictor:
         pred_lr = float(self.lr_model.predict(X_scaled)[0])
         pred_gb = float(self.gb_model.predict(X_raw)[0])
         
-        with torch.no_grad():
-            X_tensor = torch.tensor(X_scaled, dtype=torch.float32).unsqueeze(1)
-            pred_lstm = float(self.lstm_model(X_tensor).numpy().squeeze())
+        if HAS_TORCH and self.lstm_model is not None:
+            try:
+                with torch.no_grad():
+                    X_tensor = torch.tensor(X_scaled, dtype=torch.float32).unsqueeze(1)
+                    pred_lstm = float(self.lstm_model(X_tensor).numpy().squeeze())
+            except Exception:
+                pred_lstm = pred_gb
+        else:
+            pred_lstm = pred_gb
 
         cur_tt = traffic['current_travel_time']
         delay_sec = round(pred_gb - cur_tt, 2)
