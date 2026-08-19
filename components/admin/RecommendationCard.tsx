@@ -6,6 +6,18 @@ const AI_BACKEND = process.env.NEXT_PUBLIC_AI_BACKEND_URL || 'http://localhost:8
 
 export type Confidence = 'low' | 'medium' | 'high'
 
+export interface RecommendationOption {
+  id: string
+  strategy_type: 'signal_timing' | 'dynamic_reroute' | 'officer_dispatch'
+  title: string
+  action: str
+  reason: str
+  expected_impact: str
+  side_effect_tradeoff: str
+  confidence: Confidence
+  is_recommended?: boolean
+}
+
 export interface RecommendationData {
   id: string
   action: string
@@ -16,6 +28,7 @@ export interface RecommendationData {
   predicted_congestion: number
   severity: string
   generated_at: string
+  options?: RecommendationOption[]
 }
 
 interface Props {
@@ -38,6 +51,7 @@ const SEVERITY_COLOR: Record<string, string> = {
 }
 
 export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Props) {
+  const [selectedOptionId, setSelectedOptionId] = useState<string>('opt-1')
   const [decision, setDecision] = useState<string | null>(null)
   const [showModify, setShowModify] = useState(false)
   const [modifyForm, setModifyForm] = useState({
@@ -63,7 +77,15 @@ export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Pr
     )
   }
 
-  const conf = CONFIDENCE_STYLES[data.confidence] || CONFIDENCE_STYLES.medium
+  const hasOptions = data.options && data.options.length > 0
+  const activeOption = hasOptions ? (data.options!.find(o => o.id === selectedOptionId) || data.options![0]) : null
+
+  const displayAction = activeOption ? activeOption.action : data.action
+  const displayReason = activeOption ? activeOption.reason : data.reason
+  const displayEffect = activeOption ? `${activeOption.expected_impact} (Tradeoff: ${activeOption.side_effect_tradeoff})` : data.expected_effect
+  const displayConfidence = activeOption ? activeOption.confidence : data.confidence
+
+  const conf = CONFIDENCE_STYLES[displayConfidence] || CONFIDENCE_STYLES.medium
   const sevColor = SEVERITY_COLOR[data.severity] || '#9e9189'
 
   const postDecision = async (chosenDecision: string, extraFields = {}) => {
@@ -76,7 +98,8 @@ export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Pr
         body: JSON.stringify({
           recommendation_id: data.id,
           decision: chosenDecision,
-          recommendation_text: data.action,
+          recommendation_text: displayAction,
+          selected_strategy: activeOption ? activeOption.strategy_type : 'signal_timing',
           ...extraFields,
         }),
       })
@@ -86,7 +109,6 @@ export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Pr
       setSubmitted(true)
       onDecisionRecorded?.(chosenDecision)
     } catch (e: any) {
-      // Rollback optimistic state
       setDecision(null)
       setError(e.message || 'Failed to record decision. Please try again.')
     } finally {
@@ -115,7 +137,7 @@ export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Pr
       <div style={{ padding: '16px 24px', background: '#faf8f5', borderBottom: '1px solid #e8e0d5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: '#9e9189', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            AI Recommendation · {data.corridor_name}
+            AI Multi-Option Advisory · {data.corridor_name}
           </div>
           <div style={{ fontSize: 12, color: '#9e9189', marginTop: 2 }}>
             Generated {new Date(data.generated_at).toLocaleTimeString()}
@@ -131,19 +153,71 @@ export function RecommendationCard({ data, unavailable, onDecisionRecorded }: Pr
         </div>
       </div>
 
+      {/* Multi-Strategy Option Tabs */}
+      {hasOptions && (
+        <div style={{ padding: '12px 24px', background: '#f5f2ee', borderBottom: '1px solid #e8e0d5', display: 'flex', gap: 8 }}>
+          {data.options!.map((opt, i) => {
+            const isSelected = (selectedOptionId === opt.id) || (!selectedOptionId && i === 0)
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setSelectedOptionId(opt.id)}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 12, textAlign: 'left',
+                  border: isSelected ? '2px solid #2c2825' : '1px solid #e8e0d5',
+                  background: isSelected ? '#white' : '#faf8f5',
+                  color: isSelected ? '#2c2825' : '#6b625b',
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  position: 'relative',
+                }}
+              >
+                {opt.is_recommended && (
+                  <span style={{ position: 'absolute', top: -8, right: 10, background: '#2c2825', color: '#c8a97e', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 6, textTransform: 'uppercase' }}>
+                    AI Recommended
+                  </span>
+                )}
+                <div style={{ fontSize: 10, fontWeight: 800, color: isSelected ? '#a67c52' : '#9e9189', textTransform: 'uppercase', marginBottom: 2 }}>
+                  Option {i + 1} · {opt.strategy_type.replace('_', ' ')}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, lineHeight: 1.2 }}>{opt.title}</div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
       {/* Body */}
       <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Recommended Action</div>
-          <p style={{ fontSize: 16, fontWeight: 700, color: '#2c2825', lineHeight: 1.4 }}>{data.action}</p>
+          <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Action Plan</div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#2c2825', lineHeight: 1.4 }}>{displayAction}</p>
         </div>
+
+        {activeOption ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, background: '#faf8f5', padding: 14, borderRadius: 12, border: '1px solid #e8e0d5' }}>
+            <div>
+              <div style={{ fontSize: 10, color: '#16a34a', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>
+                ✓ Expected Impact
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#16a34a', margin: 0 }}>{activeOption.expected_impact}</p>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: '#b45309', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>
+                ⚠ Side Effect Trade-off
+              </div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#b45309', margin: 0 }}>{activeOption.side_effect_tradeoff}</p>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Expected Effect</div>
+            <p style={{ fontSize: 13, color: '#555', lineHeight: 1.5, fontStyle: 'italic' }}>{displayEffect}</p>
+          </div>
+        )}
+
         <div>
-          <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Reason</div>
-          <p style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>{data.reason}</p>
-        </div>
-        <div>
-          <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Expected Effect</div>
-          <p style={{ fontSize: 13, color: '#555', lineHeight: 1.5, fontStyle: 'italic' }}>{data.expected_effect}</p>
+          <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Data Justification</div>
+          <p style={{ fontSize: 13, color: '#555', lineHeight: 1.5 }}>{displayReason}</p>
         </div>
       </div>
 

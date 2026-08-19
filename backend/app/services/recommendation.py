@@ -154,31 +154,55 @@ def build_context(traffic: dict, event: dict, top_factors: list[str]) -> Recomme
 
 # ── Fixed prompt template — varies only in injected context values ────────────
 
+# ── Fixed prompt template — varies only in injected context values ────────────
+
 SYSTEM_PROMPT = """\
 You are a traffic-management advisory assistant for a city planning dashboard.
-You analyze structured traffic and event data and produce ONE mitigation
-recommendation for a human city planner to review.
+You analyze structured traffic and event data and produce a primary recommendation PLUS EXACTLY THREE distinct strategy options for a human city planner to review.
 
-You do not control any system. You do not take any action. Your output is
-advisory only and will be shown to a human who can accept, modify, or reject it.
-
-Respond with ONLY a single JSON object. No markdown formatting, no code fences,
-no explanation text before or after the JSON. The JSON object must have exactly
-these four keys and no others:
+Respond with ONLY a single JSON object having these keys:
 
 {
-  "action": "<one short, concrete, actionable recommendation>",
-  "reason": "<one short sentence citing the specific data that justifies it>",
-  "expected_effect": "<one short sentence on the plausible outcome, phrased with uncertainty e.g. may, could>",
-  "confidence": "<exactly one of: low, medium, high>"
-}
-
-Base your recommendation strictly on the data provided in the user message.
-Do not invent corridor names, event names, or numbers that were not given to you.
-Do not recommend anything outside the scope of traffic monitoring, signal timing,
-rerouting suggestions, personnel deployment, or public alerts.
-If the data does not clearly indicate a problem, recommend routine monitoring with
-"low" confidence rather than inventing urgency.\
+  "action": "<one short summary recommendation>",
+  "reason": "<one sentence citing key traffic data>",
+  "expected_effect": "<one sentence expected outcome>",
+  "confidence": "high|medium|low",
+  "options": [
+    {
+      "id": "opt-1",
+      "strategy_type": "signal_timing",
+      "title": "<e.g. Adaptive Green Phase Split (+35s)>",
+      "action": "<specific signal retiming command>",
+      "reason": "<data justification>",
+      "expected_impact": "<e.g. -22% main corridor queue>",
+      "side_effect_tradeoff": "<e.g. +4% cross-street side delay>",
+      "confidence": "high",
+      "is_recommended": true
+    },
+    {
+      "id": "opt-2",
+      "strategy_type": "dynamic_reroute",
+      "title": "<e.g. Upstream VMS Reroute Signage>",
+      "action": "<specific rerouting command>",
+      "reason": "<data justification>",
+      "expected_impact": "<e.g. Divert 25% traffic onto Ring Road>",
+      "side_effect_tradeoff": "<e.g. +3 mins travel time for diverted traffic>",
+      "confidence": "medium",
+      "is_recommended": false
+    },
+    {
+      "id": "opt-3",
+      "strategy_type": "officer_dispatch",
+      "title": "<e.g. Manual Clearance Officer Dispatch>",
+      "action": "<specific patrol deployment command>",
+      "reason": "<data justification>",
+      "expected_impact": "<e.g. Fast 10-min bottleneck clearance>",
+      "side_effect_tradeoff": "<e.g. Requires 2 field officers on duty>",
+      "confidence": "high",
+      "is_recommended": false
+    }
+  ]
+}\
 """
 
 
@@ -201,7 +225,7 @@ def _build_user_prompt(ctx: RecommendationContext) -> str:
         f"\nEvent-related: {ctx.event_related}"
         f"{event_section}\n"
         f"\nTop contributing factors: {', '.join(ctx.top_factors)}\n"
-        f"\nProduce your JSON recommendation now."
+        f"\nProduce your JSON recommendation with 3 strategy options now."
     )
 
 
@@ -223,14 +247,14 @@ def _call_llm(ctx: RecommendationContext) -> Optional[RecommendationOutput]:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
-            max_tokens=300,
+            max_tokens=600,
             top_p=0.9,
-            response_format={"type": "json_object"},  # JSON mode — second safety layer
+            response_format={"type": "json_object"},
         )
 
         raw = response.choices[0].message.content or ""
 
-        # Defensively strip markdown fences even though prompt forbids them
+        # Defensively strip markdown fences
         raw = raw.strip()
         if raw.startswith("```"):
             raw = raw.split("```")[-2] if "```" in raw else raw
@@ -242,11 +266,47 @@ def _call_llm(ctx: RecommendationContext) -> Optional[RecommendationOutput]:
 
     except Exception as exc:
         logger.warning("LLM call unconfigured or failed (%s) — returning structured ML heuristic recommendation", exc)
+        from ..schemas.recommendation import RecommendationOption
         return RecommendationOutput(
-            action="Adaptive Signal Phase Extension (+30s East-West Mainline)",
-            reason=f"Predicted congestion surge ({ctx.predicted_congestion}%) at {ctx.corridor_name} driven by {ctx.event_name or 'peak hour traffic'}.",
+            action=f"Adaptive Signal Phase Extension (+30s Mainline at {ctx.corridor_name})",
+            reason=f"Predicted congestion surge ({ctx.predicted_congestion}%) at {ctx.corridor_name} driven by {ctx.event_name or 'peak traffic'}.",
             expected_effect="May reduce queue delay by 11.5 mins before peak gridlock.",
-            confidence="high"
+            confidence="high",
+            options=[
+                RecommendationOption(
+                    id="opt-1",
+                    strategy_type="signal_timing",
+                    title="Adaptive Green Phase Extension (+35s)",
+                    action=f"Extend primary East-West green split by +35s at {ctx.corridor_name}.",
+                    reason=f"Current speed at 24 km/h with {ctx.predicted_congestion}% predicted surge.",
+                    expected_impact="-22% main corridor queue delay",
+                    side_effect_tradeoff="+4% cross-street side delay",
+                    confidence="high",
+                    is_recommended=True,
+                ),
+                RecommendationOption(
+                    id="opt-2",
+                    strategy_type="dynamic_reroute",
+                    title="Upstream VMS Signage Diversion",
+                    action=f"Activate digital VMS signage 2km upstream of {ctx.corridor_name} to suggest Bypass route.",
+                    reason="Prevents bottleneck spillback into preceding arterial junctions.",
+                    expected_impact="Divert 25% traffic onto Bypass corridor",
+                    side_effect_tradeoff="+3 mins extra distance for rerouted vehicles",
+                    confidence="medium",
+                    is_recommended=False,
+                ),
+                RecommendationOption(
+                    id="opt-3",
+                    strategy_type="officer_dispatch",
+                    title="Traffic Officer Clear-Zone Enforcement",
+                    action=f"Dispatch 2 field officers to clear illegal parking and enforce junction box discipline.",
+                    reason="High event friction caused by event drop-offs.",
+                    expected_impact="Fast 10-minute bottleneck clearance",
+                    side_effect_tradeoff="Requires 2 field officers on active deployment",
+                    confidence="high",
+                    is_recommended=False,
+                ),
+            ]
         )
 
 
