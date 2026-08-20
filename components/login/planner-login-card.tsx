@@ -38,7 +38,7 @@ export function PlannerLoginCard({
       setTimeout(() => {
         setSuccess('Authorizing City Planner access...')
         setTimeout(() => {
-          router.push('/admin')
+          router.push('/admin/traffic')
         }, 500)
       }, 400)
       return
@@ -53,7 +53,7 @@ export function PlannerLoginCard({
       if (authError) {
         if (email.toLowerCase().includes('planner') || email === 'admin@city.gov') {
           setSuccess('Planner credentials verified! Opening Command Dashboard...')
-          setTimeout(() => router.push('/admin'), 500)
+          setTimeout(() => router.push('/admin/traffic'), 500)
           return
         }
         setError(authError.message)
@@ -70,7 +70,7 @@ export function PlannerLoginCard({
       }
 
       setSuccess('Planner session established! Opening Traffic Intelligence...')
-      setTimeout(() => router.push('/admin'), 400)
+      setTimeout(() => router.push('/admin/traffic'), 400)
     } catch (err: any) {
       setError(err?.message || 'Failed to sign in. Please try again.')
       setLoading(false)

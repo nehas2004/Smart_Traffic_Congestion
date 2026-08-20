@@ -39,7 +39,7 @@ export function SignUpCard({
       setTimeout(() => {
         setSuccess(`Account registered as ${isPlanner ? 'City Planner' : 'Commuter'}! Redirecting...`)
         setTimeout(() => {
-          router.push(isPlanner ? '/admin' : '/routes')
+          router.push(isPlanner ? '/admin/traffic' : '/routes')
         }, 600)
       }, 500)
       return
@@ -65,7 +65,7 @@ export function SignUpCard({
 
       if (data.session) {
         setSuccess('Account created successfully! Loading your dashboard...')
-        setTimeout(() => router.push(role === 'commuter' ? '/routes' : '/admin'), 600)
+        setTimeout(() => router.push(role === 'commuter' ? '/routes' : '/admin/traffic'), 600)
       } else {
         setSuccess('Account created! Please check your email for a verification confirmation.')
         setLoading(false)
