@@ -1,137 +1,252 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import React, { useState, useMemo } from 'react'
 import { Nav } from '@/components/shared/nav'
-import { AlertTriangle, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react'
+import {
+  Zap,
+  MapPin,
+  Clock,
+  Compass,
+  AlertTriangle,
+  CheckCircle,
+  TrendingUp,
+  Fuel,
+  Navigation,
+  ArrowRight,
+  ShieldCheck,
+  Flame,
+  Activity
+} from 'lucide-react'
+import { ForecastChart } from '@/components/dashboard/commuter/forecast-chart'
 import { FuelCostCalculator } from '@/components/dashboard/commuter/fuel-cost-calculator'
 
-export default function DashboardPage() {
-  const [data, setData] = useState<any>(null)
-  useEffect(() => {
-    fetch('/data/traffic_predictions.json').then(r => r.json()).then(setData).catch(() => {})
-  }, [])
+interface CorridorOption {
+  id: string
+  name: string
+  from: string
+  to: string
+  distanceKm: number
+  baseDurationMins: number
+  currentDelayMins: number
+  hotspots: { name: string; delay: number; severity: 'Moderate' | 'Heavy' | 'Severe' }[]
+}
 
-  const metrics = data?.metrics
-  const forecast = data?.forecast?.slice(0, 10) || []
-  const bottlenecks = data?.bottlenecks || []
-  const maxDelay = Math.max(...forecast.map((d: any) => d.delay_mins), 1)
+const PRESET_CORRIDORS: CorridorOption[] = [
+  {
+    id: 'corridor-1',
+    name: 'NH-85 Regional Arterial',
+    from: 'Kochi (Edappally Toll)',
+    to: 'Kothamangalam (Thankalam)',
+    distanceKm: 48.8,
+    baseDurationMins: 81,
+    currentDelayMins: 4,
+    hotspots: [
+      { name: 'Thankalam Junction', delay: 4, severity: 'Moderate' },
+      { name: 'Kozhippilly Bottleneck', delay: 5, severity: 'Moderate' },
+      { name: 'MC Road Junction', delay: 6, severity: 'Moderate' }
+    ]
+  },
+  {
+    id: 'corridor-2',
+    name: 'Kothamangalam Town Gateway',
+    from: 'Thankalam Junction',
+    to: 'Kozhippilly (NH 85)',
+    distanceKm: 14.2,
+    baseDurationMins: 22,
+    currentDelayMins: 5,
+    hotspots: [
+      { name: 'Town Central Square', delay: 3, severity: 'Moderate' },
+      { name: 'Kozhippilly Market', delay: 2, severity: 'Moderate' }
+    ]
+  },
+  {
+    id: 'corridor-3',
+    name: 'Aluva - Munnar Highway',
+    from: 'Aluva Town Gate',
+    to: 'High Range Junction',
+    distanceKm: 50.9,
+    baseDurationMins: 85,
+    currentDelayMins: 8,
+    hotspots: [
+      { name: 'Perumbavoor Town Center', delay: 5, severity: 'Moderate' },
+      { name: 'High Range Feeder Road', delay: 3, severity: 'Moderate' }
+    ]
+  },
+  {
+    id: 'corridor-4',
+    name: 'Muvattupuzha Bypass Link',
+    from: 'Muvattupuzha MC Road',
+    to: 'Karikkode Junction',
+    distanceKm: 26.5,
+    baseDurationMins: 42,
+    currentDelayMins: 7,
+    hotspots: [
+      { name: 'Karikkode Bypass Bend', delay: 4, severity: 'Moderate' },
+      { name: 'Market Feeder Link', delay: 3, severity: 'Moderate' }
+    ]
+  }
+]
+
+export default function DashboardPage() {
+  const [selectedCorridorId, setSelectedCorridorId] = useState<string>('corridor-1')
+  const [selectedHour, setSelectedHour] = useState<number | null>(null)
+
+  const activeCorridor = useMemo(() => {
+    return PRESET_CORRIDORS.find(c => c.id === selectedCorridorId) || PRESET_CORRIDORS[0]
+  }, [selectedCorridorId])
 
   return (
-    <div style={{ minHeight:'100vh', background:'#faf8f5' }}>
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
       <Nav />
-      <main style={{ maxWidth:1200, margin:'0 auto', padding:'48px 24px 80px' }}>
-        <div style={{ marginBottom:40 }}>
-          <h1 style={{ fontSize:28, fontWeight:900, color:'#2c2825', letterSpacing:'-0.5px' }}>
-            Analytics Dashboard
-          </h1>
-          <p style={{ color:'#9e9189', fontSize:14, marginTop:4 }}>
-            ML model metrics · delay forecast · active bottlenecks · {data?.total_records_used || '--'} real data points trained
-          </p>
-        </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:20, marginBottom:24 }}>
-          {/* ML Metrics: Linear Regression */}
-          <div style={{ background:'white', borderRadius:16, border:'1px solid #e8e0d5', padding:24 }}>
-            <div style={{ fontSize:11, color:'#9e9189', fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.08em', marginBottom:16 }}>Linear Regression</div>
-            {[['MSE', metrics?.linear_regression?.mse], ['RMSE', metrics?.linear_regression?.rmse], ['MAE', metrics?.linear_regression?.mae]].map(([k, v]) => (
-              <div key={k as string} style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
-                <span style={{ fontSize:13, color:'#9e9189' }}>{k}</span>
-                <span style={{ fontSize:15, fontWeight:800, color:'#2c2825' }}>{v ?? '—'}</span>
-              </div>
-            ))}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-8">
+        {/* Header with Corridor Selector */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                <Activity size={11} className="text-indigo-600" /> Commuter Traffic Hub
+              </span>
+              <span className="text-xs text-slate-500 font-medium">Real-Time Forecasts</span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-1">
+              24-Hour Corridor Traffic Forecast
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-1">
+              Select an arterial route to analyze 24-hour predictive congestion curves, simulate departure times, and evaluate delays.
+            </p>
           </div>
 
-          {/* ML Metrics: Gradient Boosting */}
-          <div style={{ background:'white', borderRadius:16, border:'2px solid #a67c52', padding:24,
-            boxShadow:'0 4px 20px rgba(166,124,82,0.12)' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-              <div style={{ fontSize:11, color:'#9e9189', fontWeight:700, textTransform:'uppercase',
-                letterSpacing:'0.08em' }}>Gradient Boosting</div>
-              <span style={{ background:'#a67c52', color:'white', borderRadius:20, padding:'2px 10px',
-                fontSize:10, fontWeight:800 }}>WINNER</span>
-            </div>
-            {[['MSE', metrics?.gradient_boosting?.mse], ['RMSE', metrics?.gradient_boosting?.rmse], ['MAE', metrics?.gradient_boosting?.mae]].map(([k, v]) => (
-              <div key={k as string} style={{ display:'flex', justifyContent:'space-between', marginBottom:12 }}>
-                <span style={{ fontSize:13, color:'#9e9189' }}>{k}</span>
-                <span style={{ fontSize:15, fontWeight:800, color:'#2c2825' }}>{v ?? '—'}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Coverage Info */}
-          <div style={{ background:'#2c2825', borderRadius:16, padding:24, color:'white' }}>
-            <div style={{ fontSize:11, color:'#c8a97e', fontWeight:700, textTransform:'uppercase',
-              letterSpacing:'0.08em', marginBottom:16 }}>Trained Sensors</div>
-            {['Central Junction', 'MC Road Segment', 'Market Area'].map((s, i) => (
-              <div key={i} style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <span style={{ width:8, height:8, borderRadius:'50%', background:'#c8a97e', flexShrink:0, display:'inline-block' }} />
-                <span style={{ fontSize:12, color:'#e8e0d5' }}>{s}</span>
-              </div>
-            ))}
-            <div style={{ marginTop:16, fontSize:11, color:'#c8a97e90' }}>
-              Coverage radius: 500m
-            </div>
+          {/* Quick Corridor Selection Dropdown / Selector */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-2 shadow-xs flex items-center gap-2 shrink-0">
+            <span className="text-xs font-bold text-slate-400 pl-2">Corridor:</span>
+            <select
+              value={selectedCorridorId}
+              onChange={(e) => {
+                setSelectedCorridorId(e.target.value)
+                setSelectedHour(null)
+              }}
+              className="bg-slate-50 text-slate-800 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+            >
+              {PRESET_CORRIDORS.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.distanceKm} km)
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:20, marginBottom:24 }}>
-          {/* Forecast Chart */}
-          <div style={{ background:'white', borderRadius:16, border:'1px solid #e8e0d5', padding:24 }}>
-            <div style={{ fontWeight:700, color:'#2c2825', marginBottom:4 }}>Delay Forecast</div>
-            <div style={{ fontSize:12, color:'#9e9189', marginBottom:24 }}>
-              ML gradient boosting · next {forecast.length} hours · Kothamangalam
-            </div>
-            <div style={{ display:'flex', alignItems:'flex-end', gap:8, height:160 }}>
-              {forecast.map((item: any, i: number) => {
-                const h = Math.max((item.delay_mins / maxDelay) * 130, 4)
-                const hot = item.delay_mins > 5
-                return (
-                  <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-                    <div title={item.delay_mins + ' min delay'} style={{
-                      width:'100%', height:h, borderRadius:6,
-                      background: hot ? '#a67c52' : '#e8e0d5',
-                      transition:'height 0.5s ease' }} />
-                    <span style={{ fontSize:10, color:'#9e9189', fontWeight:500 }}>
-                      {item.time.split(' ')[0]}
+        {/* Quick Corridor Navigation Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {PRESET_CORRIDORS.map((corridor) => {
+            const isSelected = corridor.id === activeCorridor.id
+            const totalMins = corridor.baseDurationMins + corridor.currentDelayMins
+            return (
+              <button
+                key={corridor.id}
+                type="button"
+                onClick={() => {
+                  setSelectedCorridorId(corridor.id)
+                  setSelectedHour(null)
+                }}
+                className={`p-3.5 rounded-2xl text-left transition-all border cursor-pointer ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-500/20'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-xs'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="text-[11px] font-extrabold truncate uppercase tracking-wider">
+                    {corridor.name}
+                  </span>
+                  {corridor.currentDelayMins > 0 && (
+                    <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      +{corridor.currentDelayMins}m
                     </span>
-                  </div>
-                )
-              })}
-              {forecast.length === 0 && <p style={{ color:'#9e9189', fontSize:13, margin:'auto' }}>Loading...</p>}
-            </div>
-          </div>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className={`text-lg font-black ${isSelected ? 'text-white' : 'text-slate-900'}`}>
+                    {totalMins} min
+                  </span>
+                  <span className={`text-[11px] font-medium ${isSelected ? 'text-indigo-100' : 'text-slate-400'}`}>
+                    · {corridor.distanceKm} km
+                  </span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
 
-          {/* Bottlenecks */}
-          <div style={{ background:'white', borderRadius:16, border:'1px solid #e8e0d5', padding:24 }}>
-            <div style={{ fontWeight:700, color:'#2c2825', marginBottom:16 }}>Active Bottlenecks</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              {bottlenecks.map((item: any, i: number) => (
-                <div key={i} style={{ display:'flex', gap:12, padding:12, borderRadius:12,
-                  background:'#f5f2ee', border:'1px solid #e8e0d5' }}>
-                  <div style={{ width:34, height:34, borderRadius:10, background:'white',
-                    display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-                    boxShadow:'0 1px 4px rgba(44,40,37,0.08)' }}>
-                    <AlertTriangle size={14} color={item.severity==='High' ? '#ef4444' : '#a67c52'} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize:12, fontWeight:600, color:'#2c2825', lineHeight:1.3 }}>{item.location}</div>
-                    <div style={{ fontSize:11, color:'#9e9189', marginTop:4, display:'flex', alignItems:'center', gap:6 }}>
-                      +{item.delay} min
-                      {item.trend === 'worsening'
-                        ? <TrendingUp size={10} color="#ef4444" />
-                        : <TrendingDown size={10} color="#16a34a" />}
-                      {item.trend}
+        {/* 24-HOUR ROUTE-SPECIFIC FORECAST CURVE */}
+        <div className="mb-6">
+          <ForecastChart
+            fromName={activeCorridor.from}
+            toName={activeCorridor.to}
+            distanceKm={activeCorridor.distanceKm}
+            baseDurationMins={activeCorridor.baseDurationMins}
+            currentDelayMins={activeCorridor.currentDelayMins}
+            selectedHour={selectedHour}
+            onSelectHour={setSelectedHour}
+          />
+        </div>
+
+        {/* Bottom Details Grid: Active Bottlenecks & Commuter Fuel Calculator */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Active Bottlenecks along the selected corridor */}
+          <div className="lg:col-span-6 bg-white rounded-3xl border border-slate-200/80 p-5 sm:p-6 shadow-sm">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-amber-500" />
+                  Active Bottlenecks on {activeCorridor.name}
+                </h2>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Real-time choke points and delay hotspots along this corridor.
+                </p>
+              </div>
+              <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                {activeCorridor.hotspots.length} Points
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {activeCorridor.hotspots.map((spot, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-200/70 hover:bg-slate-100/80 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="size-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-amber-600 shrink-0 shadow-2xs font-bold text-xs">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{spot.name}</div>
+                      <div className="text-[11px] text-slate-500 font-medium">
+                        Congestion impact: <span className="text-slate-700 font-semibold">{spot.severity}</span>
+                      </div>
                     </div>
                   </div>
+
+                  <span className="text-xs font-black text-rose-600 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100">
+                    +{spot.delay} min delay
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Commuter Fuel Cost Calculator */}
-        <div style={{ maxWidth: 640 }}>
-          <FuelCostCalculator initialDistance={35} initialMileage={15} initialFuelPrice={106.50} />
+          {/* Commuter Fuel Cost Calculator */}
+          <div className="lg:col-span-6">
+            <FuelCostCalculator
+              initialDistance={activeCorridor.distanceKm}
+              initialMileage={15}
+              initialFuelPrice={106.50}
+            />
+          </div>
         </div>
       </main>
     </div>

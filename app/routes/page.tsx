@@ -24,8 +24,11 @@ import {
   Compass,
   ChevronDown,
   X,
+  Zap,
 } from 'lucide-react'
 import { calculateFuelCost } from '@/components/dashboard/commuter/fuel-cost-calculator'
+import { ForecastChart } from '@/components/dashboard/commuter/forecast-chart'
+import { generate24HourRouteForecast } from '@/lib/api-services'
 
 const FREE_FLOW = 48
 
@@ -252,6 +255,7 @@ function RoutesContent() {
     urlDepartAt ? `Depart ${urlDepartAt.replace('T', ' ')}` : 'Leave now'
   )
   const [showDeparturePopover, setShowDeparturePopover] = useState(false)
+  const [simulatedHour, setSimulatedHour] = useState<number | null>(null)
 
   const [fromSuggestions, setFromSuggestions] = useState<any[]>([])
   const [toSuggestions, setToSuggestions] = useState<any[]>([])
@@ -1460,9 +1464,18 @@ function RoutesContent() {
                   {departureMode !== 'now' ? departureLabel : 'Click any route tab or card to view on map'}
                 </p>
               </div>
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
-                {routes.length} Active Corridors
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('route-forecast-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <Zap size={11} className="text-indigo-600" /> 24h Forecast ↓
+                </button>
+                <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                  {routes.length} Active Corridors
+                </span>
+              </div>
             </div>
 
             {/* Quick Route Selector Tab Bar (All 4 Corridors visible at a glance) */}
@@ -1471,8 +1484,17 @@ function RoutesContent() {
                 {routes.map((r, i) => {
                   const fc = forecasts[i]
                   const baseM = fc?.baseTravelTimeMins || Math.round((r.summary?.travelTimeInSeconds || 0) / 60)
-                  const del = fc?.delay || 0
-                  const totalPredicted = fc?.totalPredictedMins || (baseM + del)
+                  let del = fc?.delay || 0
+                  let totalPredicted = fc?.totalPredictedMins || (baseM + del)
+
+                  if (simulatedHour !== null) {
+                    const rDist = (r.summary?.lengthInMeters || 0) / 1000
+                    const isWknd = new Date().getDay() === 0 || new Date().getDay() === 6
+                    const hrForecast = generate24HourRouteForecast(rDist, baseM, isWknd)[simulatedHour]
+                    del = hrForecast.delayMins
+                    totalPredicted = hrForecast.predictedDurationMins
+                  }
+
                   const isSel = selectedRouteIdx === i
                   return (
                     <button
@@ -1528,8 +1550,18 @@ function RoutesContent() {
                 const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const fc = forecasts[idx]
                 const baseMins = fc?.baseTravelTimeMins || Math.round((summary.travelTimeInSeconds || 0) / 60)
-                const delayVal = fc?.delay || 0
-                const totalPredictedMins = fc?.totalPredictedMins || (baseMins + delayVal)
+                let delayVal = fc?.delay || 0
+                let totalPredictedMins = fc?.totalPredictedMins || (baseMins + delayVal)
+                let speedVal = Math.round(fc?.predictedSpeed || FREE_FLOW)
+
+                if (simulatedHour !== null) {
+                  const isWknd = new Date().getDay() === 0 || new Date().getDay() === 6
+                  const hrForecast = generate24HourRouteForecast(parseFloat(distKm), baseMins, isWknd)[simulatedHour]
+                  delayVal = hrForecast.delayMins
+                  totalPredictedMins = hrForecast.predictedDurationMins
+                  speedVal = hrForecast.predictedSpeed
+                }
+
                 const isSelected = selectedRouteIdx === idx
                 const isTopRoute = idx === 0
                 const seg = fc?.segmentProportions || { fast: 70, moderate: 20, slow: 10, heavy: 0 }
@@ -1564,7 +1596,7 @@ function RoutesContent() {
                       </div>
 
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
+                        <CongestionBadge speed={speedVal} delay={delayVal} freeFlowSpeed={fc?.freeFlowSpeed} />
                         <span className="text-[11px] font-bold text-indigo-600 group-hover:underline flex items-center gap-1">
                           Select Route →
                         </span>
@@ -1600,7 +1632,7 @@ function RoutesContent() {
                         </span>
                       </div>
 
-                      <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
+                      <CongestionBadge speed={speedVal} delay={delayVal} freeFlowSpeed={fc?.freeFlowSpeed} />
                     </div>
 
                     {/* Large Duration Text, Distance & Fuel Cost Details */}
@@ -1632,7 +1664,7 @@ function RoutesContent() {
                       <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
                         <span>Route Traffic Flow</span>
                         <span className="text-slate-500 font-semibold normal-case">
-                          {Math.round(fc?.predictedSpeed || FREE_FLOW)} km/h avg
+                          {speedVal} km/h avg
                         </span>
                       </div>
 
@@ -1829,6 +1861,21 @@ function RoutesContent() {
             </div>
           </div>
         </div>
+
+        {/* 24-HOUR ROUTE-SPECIFIC PREDICTIVE TRAFFIC & DELAY FORECAST CURVE */}
+        {!loading && routes.length > 0 && (
+          <div id="route-forecast-section" className="mt-8">
+            <ForecastChart
+              fromName={searchFrom || 'Origin'}
+              toName={searchTo || 'Destination'}
+              distanceKm={parseFloat((((routes[selectedRouteIdx] || routes[0])?.summary?.lengthInMeters || 0) / 1000).toFixed(1))}
+              baseDurationMins={forecasts[selectedRouteIdx]?.baseTravelTimeMins || Math.round((((routes[selectedRouteIdx] || routes[0])?.summary?.lengthInMeters || 0) / 1000 / 38) * 60)}
+              currentDelayMins={forecasts[selectedRouteIdx]?.delay || 0}
+              selectedHour={simulatedHour}
+              onSelectHour={setSimulatedHour}
+            />
+          </div>
+        )}
       </main>
     </div>
   )

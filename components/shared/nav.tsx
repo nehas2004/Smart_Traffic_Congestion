@@ -9,6 +9,7 @@ import { getStoredUser, signOutUser, FlowcastUser } from '@/lib/auth'
 const navLinks = [
   { href: '/routes', label: 'Route Options', icon: Waypoints },
   { href: '/map', label: 'Live Map', icon: Map },
+  { href: '/dashboard', label: '24h Forecast', icon: BarChart2 },
 ]
 
 export function Nav() {
@@ -16,8 +17,10 @@ export function Nav() {
   const router = useRouter()
   const [user, setUser] = useState<FlowcastUser | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     const currentUser = getStoredUser()
     setUser(currentUser)
   }, [pathname])
@@ -35,7 +38,7 @@ export function Nav() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
+    <header suppressHydrationWarning className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link href="/routes" className="flex items-center gap-2.5 group select-none">
@@ -72,7 +75,7 @@ export function Nav() {
           <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
 
           {/* User Info Pill (if commuter is logged in) */}
-          {user && (
+          {mounted && user && (
             <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium">
               <div className="size-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold uppercase">
                 {user.name ? user.name[0] : <User size={10} />}
@@ -95,6 +98,7 @@ export function Nav() {
             type="button"
             onClick={handleLogout}
             disabled={isLoggingOut}
+            suppressHydrationWarning
             title="Log out of commuter account"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-rose-600 bg-slate-100/80 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-all cursor-pointer disabled:opacity-50"
           >
