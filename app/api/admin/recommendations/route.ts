@@ -71,25 +71,28 @@ async function generateCoordinateRecommendations(
       id: 'rec-01',
       coords: [centerLat, centerLon] as [number, number],
       action_type: 'signal_retiming' as const,
-      titleTemplate: (lat: number, lon: number) => `Adaptive Green Phase Extension (+35s) at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
+      corridorLabel: 'Central Junction & Main Arterial Corridor',
+      titleTemplate: (lat: number, lon: number) => `Add +35s to Green Signal at Central Junction`,
       descTemplate: (lat: number, lon: number, delay: number) =>
-        `Real-time sensor telemetry at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°) indicates a +${delay}m peak queue buildup. Adjust primary green split by +35s.`,
+        `Real-time sensor telemetry indicates a +${delay}m peak queue buildup. Extending the green light split by +35 seconds will drain the bottleneck before severe gridlock forms.`,
     },
     {
       id: 'rec-02',
       coords: [centerLat + 0.038, centerLon + 0.018] as [number, number],
       action_type: 'dynamic_reroute' as const,
-      titleTemplate: (lat: number, lon: number) => `Dynamic Variable Message Reroute at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
+      corridorLabel: 'North Transit Bypass & Express Arterial',
+      titleTemplate: (lat: number, lon: number) => `Activate Dynamic Variable Message Reroute Signage`,
       descTemplate: (lat: number, lon: number, delay: number) =>
-        `Choke point detected at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°) with +${delay}m delay. Activate upstream VMS signage to divert 25% of vehicles.`,
+        `Choke point detected along the North Bypass with +${delay}m delay. Activate upstream VMS signage to divert ~25% of vehicles to parallel relief roads.`,
     },
     {
       id: 'rec-03',
       coords: [centerLat - 0.042, centerLon - 0.022] as [number, number],
       action_type: 'incident_dispatch' as const,
-      titleTemplate: (lat: number, lon: number) => `Traffic Officer Clearance Patrol at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
+      corridorLabel: 'South Feeder Road & Commercial Market Hub',
+      titleTemplate: (lat: number, lon: number) => `Dispatch Traffic Officer Clearance Patrol`,
       descTemplate: (lat: number, lon: number, delay: number) =>
-        `Bottleneck friction detected at (${lat.toFixed(4)}°, ${lon.toFixed(4)}°) with +${delay}m slowdown. Dispatch 2 officers to enforce clear zones.`,
+        `Curbside congestion friction causing +${delay}m delay near Market Hub. Dispatch 2 traffic clearance officers to enforce clear-zone flow.`,
     },
   ]
 
@@ -123,7 +126,7 @@ async function generateCoordinateRecommendations(
       const rec: TrafficRecommendation = {
         id: tmpl.id,
         corridor_id: `corr-${idx + 1}`,
-        corridor_name: `Position (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
+        corridor_name: `${tmpl.corridorLabel} (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
         created_at: new Date().toISOString(),
         priority: severity === 'severe' ? 'high' : severity === 'heavy' ? 'medium' : 'low',
         title: tmpl.titleTemplate(lat, lon),
@@ -137,7 +140,7 @@ async function generateCoordinateRecommendations(
         bottleneck: {
           id: `bn-${tmpl.id}`,
           corridor_id: `corr-${idx + 1}`,
-          corridor_name: `Position (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
+          corridor_name: `${tmpl.corridorLabel} (${lat.toFixed(4)}°, ${lon.toFixed(4)}°)`,
           window: 'Live Telemetry Window',
           days: 'Active',
           severity: severity,

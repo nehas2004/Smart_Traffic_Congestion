@@ -11,6 +11,8 @@ import {
   fetchRecommendations,
   fetchDecisionHistory,
   submitDecision,
+  fetchDashboardMetrics,
+  DashboardMetrics,
 } from '@/lib/admin-api'
 import {
   SharedTrafficData,
@@ -28,13 +30,14 @@ export default function AdminOverviewPage() {
   const [bottlenecks, setBottlenecks] = useState<BottleneckItem[]>([])
   const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [decisions, setDecisions] = useState<DecisionRecord[]>([])
-  const [activeSectorName, setActiveSectorName] = useState('10.0601°, 76.6214°')
-  const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0601, lon: 76.6214 })
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
+  const [activeSectorName, setActiveSectorName] = useState('Kochi (Ernakulam)')
+  const [activeCoords, setActiveCoords] = useState<{ lat: number; lon: number }>({ lat: 10.0033, lon: 76.2996 })
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  async function loadData(sector?: { lat: number; lon: number; name: string }) {
+  async function loadData(sector?: { lat: number; lon: number; name: string; cityName?: string }) {
     setIsRefreshing(true)
     try {
       let sec = sector
@@ -45,20 +48,22 @@ export default function AdminOverviewPage() {
         } catch (_) {}
       }
       if (sec) {
-        setActiveSectorName(sec.name)
+        setActiveSectorName(sec.name || sec.cityName || 'Active City Sector')
         setActiveCoords({ lat: sec.lat, lon: sec.lon })
       }
 
-      const [cData, bData, rData, dData] = await Promise.all([
+      const [cData, bData, rData, dData, mData] = await Promise.all([
         fetchCurrentTraffic(sec),
         fetchBottlenecks(sec),
         fetchRecommendations(sec),
         fetchDecisionHistory(),
+        fetchDashboardMetrics(sec),
       ])
       setCorridors(cData)
       setBottlenecks(bData)
       setRecommendations(rData)
       setDecisions(dData)
+      setMetrics(mData)
     } finally {
       setLoading(false)
       setIsRefreshing(false)
@@ -121,16 +126,20 @@ export default function AdminOverviewPage() {
       {/* Page Title Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
               Executive Traffic Ops Dashboard
             </h1>
-            <span className="rounded-md bg-blue-100 px-2.5 py-0.5 text-xs font-mono font-bold text-blue-900">
-              10km Grid: {activeSectorName}
-            </span>
+            <div className="flex items-center gap-1.5 rounded-xl border border-blue-600/30 bg-blue-50 px-3 py-1 text-xs font-black text-blue-950 shadow-2xs">
+              <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
+              <span>{activeSectorName}</span>
+              <span className="font-mono text-[11px] font-bold text-blue-700/80">
+                ({activeCoords.lat.toFixed(4)}°, {activeCoords.lon.toFixed(4)}°)
+              </span>
+            </div>
           </div>
           <p className="mt-1 text-sm text-[#9e9189]">
-            Live congestion telemetry & AI decision support within 10km radius
+            Live congestion telemetry & AI decision support within 10km radius of {activeSectorName}
           </p>
         </div>
 
@@ -169,6 +178,8 @@ export default function AdminOverviewPage() {
         corridors={corridors}
         bottlenecks={bottlenecks}
         recommendations={recommendations}
+        metrics={metrics}
+        cityName={activeSectorName}
       />
 
       {/* DECISION SUPPORT HIGH PRIORITY QUEUE */}

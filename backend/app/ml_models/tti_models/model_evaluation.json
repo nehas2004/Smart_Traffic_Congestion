@@ -1,0 +1,248 @@
+{
+  "model_version": "tti-synthetic-v1",
+  "dataset": {
+    "path": "backend\\app\\data\\synthetic_traffic_history.csv",
+    "rows": 12096,
+    "cadence_minutes": 15,
+    "target": "congestion_index",
+    "target_formula": "actual_travel_time_sec / free_flow_travel_time_sec = free_flow_speed_kmph / actual_speed_kmph"
+  },
+  "evaluations": [
+    {
+      "model_name": "naive_seasonal",
+      "horizon": "1h",
+      "mae": 0.07099,
+      "rmse": 0.125206,
+      "evaluation_start": "2026-08-16T21:45:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1206,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "linear_regression",
+      "horizon": "1h",
+      "mae": 0.236062,
+      "rmse": 0.371107,
+      "evaluation_start": "2026-08-16T21:45:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1206,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "gradient_boosting",
+      "horizon": "1h",
+      "mae": 0.07476,
+      "rmse": 0.135783,
+      "evaluation_start": "2026-08-16T21:45:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1206,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "naive_seasonal",
+      "horizon": "3h",
+      "mae": 0.071116,
+      "rmse": 0.125464,
+      "evaluation_start": "2026-08-16T22:00:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1200,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "linear_regression",
+      "horizon": "3h",
+      "mae": 0.272318,
+      "rmse": 0.393634,
+      "evaluation_start": "2026-08-16T22:00:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1200,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "gradient_boosting",
+      "horizon": "3h",
+      "mae": 0.075766,
+      "rmse": 0.129536,
+      "evaluation_start": "2026-08-16T22:00:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1200,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "naive_seasonal",
+      "horizon": "6h",
+      "mae": 0.071557,
+      "rmse": 0.12605,
+      "evaluation_start": "2026-08-16T22:30:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1188,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "linear_regression",
+      "horizon": "6h",
+      "mae": 0.323163,
+      "rmse": 0.439209,
+      "evaluation_start": "2026-08-16T22:30:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1188,
+      "model_version": "tti-synthetic-v1"
+    },
+    {
+      "model_name": "gradient_boosting",
+      "horizon": "6h",
+      "mae": 0.07357,
+      "rmse": 0.130043,
+      "evaluation_start": "2026-08-16T22:30:00Z",
+      "evaluation_end": "2026-08-18T23:45:00Z",
+      "test_rows": 1188,
+      "model_version": "tti-synthetic-v1"
+    }
+  ],
+  "metadata_by_horizon": {
+    "1h": {
+      "model_version": "tti-synthetic-v1",
+      "target": "congestion_index",
+      "target_formula": "free_flow_speed_kmph / actual_speed_kmph",
+      "horizon": "1h",
+      "horizon_minutes": 60,
+      "feature_names": [
+        "free_flow_speed_kmph",
+        "segment_length_m",
+        "functional_class",
+        "lanes",
+        "capacity_total",
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "is_weekend",
+        "is_holiday",
+        "rainfall_mm",
+        "temperature_c",
+        "wind_speed_mps",
+        "weather_code",
+        "lag_15",
+        "lag_30",
+        "lag_60",
+        "rolling_1h_avg",
+        "road_type_arterial",
+        "road_type_collector",
+        "road_type_local"
+      ],
+      "split": {
+        "train": 0.7,
+        "validation": 0.15,
+        "test": 0.15,
+        "strategy": "chronological by source_timestamp"
+      },
+      "seasonal_period_steps": 672,
+      "seasonal_period_description": "7 days at 15-minute cadence; same corridor, weekday, and time slot one week earlier",
+      "gradient_boosting_config": {
+        "n_estimators": 220,
+        "learning_rate": 0.04,
+        "max_depth": 3,
+        "min_samples_leaf": 10,
+        "random_state": 20260819
+      },
+      "validation_rows": 1188,
+      "train_rows": 5598
+    },
+    "3h": {
+      "model_version": "tti-synthetic-v1",
+      "target": "congestion_index",
+      "target_formula": "free_flow_speed_kmph / actual_speed_kmph",
+      "horizon": "3h",
+      "horizon_minutes": 180,
+      "feature_names": [
+        "free_flow_speed_kmph",
+        "segment_length_m",
+        "functional_class",
+        "lanes",
+        "capacity_total",
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "is_weekend",
+        "is_holiday",
+        "rainfall_mm",
+        "temperature_c",
+        "wind_speed_mps",
+        "weather_code",
+        "lag_15",
+        "lag_30",
+        "lag_60",
+        "rolling_1h_avg",
+        "road_type_arterial",
+        "road_type_collector",
+        "road_type_local"
+      ],
+      "split": {
+        "train": 0.7,
+        "validation": 0.15,
+        "test": 0.15,
+        "strategy": "chronological by source_timestamp"
+      },
+      "seasonal_period_steps": 672,
+      "seasonal_period_description": "7 days at 15-minute cadence; same corridor, weekday, and time slot one week earlier",
+      "gradient_boosting_config": {
+        "n_estimators": 220,
+        "learning_rate": 0.04,
+        "max_depth": 3,
+        "min_samples_leaf": 10,
+        "random_state": 20260819
+      },
+      "validation_rows": 1128,
+      "train_rows": 5520
+    },
+    "6h": {
+      "model_version": "tti-synthetic-v1",
+      "target": "congestion_index",
+      "target_formula": "free_flow_speed_kmph / actual_speed_kmph",
+      "horizon": "6h",
+      "horizon_minutes": 360,
+      "feature_names": [
+        "free_flow_speed_kmph",
+        "segment_length_m",
+        "functional_class",
+        "lanes",
+        "capacity_total",
+        "hour_sin",
+        "hour_cos",
+        "dow_sin",
+        "dow_cos",
+        "is_weekend",
+        "is_holiday",
+        "rainfall_mm",
+        "temperature_c",
+        "wind_speed_mps",
+        "weather_code",
+        "lag_15",
+        "lag_30",
+        "lag_60",
+        "rolling_1h_avg",
+        "road_type_arterial",
+        "road_type_collector",
+        "road_type_local"
+      ],
+      "split": {
+        "train": 0.7,
+        "validation": 0.15,
+        "test": 0.15,
+        "strategy": "chronological by source_timestamp"
+      },
+      "seasonal_period_steps": 672,
+      "seasonal_period_description": "7 days at 15-minute cadence; same corridor, weekday, and time slot one week earlier",
+      "gradient_boosting_config": {
+        "n_estimators": 220,
+        "learning_rate": 0.04,
+        "max_depth": 3,
+        "min_samples_leaf": 10,
+        "random_state": 20260819
+      },
+      "validation_rows": 1050,
+      "train_rows": 5394
+    }
+  }
+}
