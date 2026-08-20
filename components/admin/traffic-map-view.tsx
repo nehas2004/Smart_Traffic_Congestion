@@ -992,8 +992,10 @@ export function TrafficMapView({
                   })}
                 </div>
               </div>
-            ) : (
-              <>
+            )}
+
+            {activeCorridor ? (
+              <div className="space-y-4">
                 {/* Selected Corridor Banner */}
                 <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
@@ -1015,17 +1017,6 @@ export function TrafficMapView({
                       Free flow: {activeCorridor.free_flow_speed_kmh || 48} km/h
                     </p>
                   </div>
-                )}
-
-                {activeCorridor ? (
-                  <>
-                    {/* Selected Corridor Card */}
-                    <div className="rounded-xl border border-[#c8a97e]/30 bg-[#faf8f5] p-3">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#a67c52]">
-                        Focused Arterial Corridor
-                      </span>
-                      <p className="text-sm font-extrabold text-[#2c2825]">{activeCorridor.corridor_name}</p>
-                    </div>
 
                   <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
@@ -1064,76 +1055,76 @@ export function TrafficMapView({
                     <span className="font-bold text-emerald-700">{(activeCorridor.confidence * 100).toFixed(1)}%</span>
                   </div>
                 </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-slate-400 bg-slate-50/70 rounded-xl border border-slate-100">
+                Click any corridor or bottleneck pin on the map to view detailed flow telemetry.
+              </div>
+            )}
 
-                {/* Corridors in this Searched Area */}
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Detected Arteries in Sector ({corridors.length})
-                  </span>
-                  <div className="mt-2 space-y-1.5">
-                    {corridors.map((c) => {
-                      const isSel = c.corridor_id === activeCorridor.corridor_id
-                      return (
-                        <button
-                          key={c.corridor_id}
-                          type="button"
-                          onClick={() => {
-                            setActiveCorridor(c)
-                            if (onSelectCorridor) onSelectCorridor(c.corridor_id)
-                          }}
-                          className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
-                            isSel
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-slate-50 text-slate-800 border border-slate-200 hover:bg-slate-100'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 truncate">
-                            <span
-                              className="size-2 rounded-full shrink-0"
-                              style={{ backgroundColor: severityHex[c.severity] }}
-                            />
-                            <span className="truncate">{c.corridor_name}</span>
-                          </div>
-                          <span className="font-mono text-[11px] opacity-80 shrink-0">
-                            {c.current_congestion}%
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+            {/* Corridors in this Searched Area */}
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Detected Arteries in Sector ({corridors.length})
+              </span>
+              <div className="mt-2 space-y-1.5">
+                {corridors.map((c) => {
+                  const isSel = c.corridor_id === activeCorridor?.corridor_id
+                  return (
+                    <button
+                      key={c.corridor_id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCorridor(c)
+                        if (onSelectCorridor) onSelectCorridor(c.corridor_id)
+                      }}
+                      className={`w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold transition-all cursor-pointer ${
+                        isSel
+                          ? 'bg-emerald-600 text-white shadow-xs'
+                          : 'bg-slate-50 text-slate-800 border border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span
+                          className="size-2 rounded-full shrink-0"
+                          style={{ backgroundColor: severityHex[c.severity] }}
+                        />
+                        <span className="truncate">{c.corridor_name}</span>
+                      </div>
+                      <span className="font-mono text-[11px] opacity-80 shrink-0">
+                        {c.current_congestion}%
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
 
-                {/* Detected Bottlenecks / Hotspots */}
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    Active Congestion Hotspots ({bottlenecks.length})
-                  </span>
-                  <div className="mt-2 space-y-1.5">
-                    {bottlenecks.map((bn) => (
-                      <div
-                        key={bn.id}
-                        className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/50 p-2.5 text-xs text-slate-900"
-                      >
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="size-3.5 text-rose-600 shrink-0" />
-                          <div>
-                            <p className="font-bold leading-tight">{bn.corridor_name}</p>
-                            <p className="text-[10px] text-slate-400">{bn.window}</p>
-                          </div>
-                        </div>
-                        <span className="font-mono font-bold text-rose-600 shrink-0">
-                          +{bn.avg_delay_mins}m
-                        </span>
+            {/* Detected Bottlenecks / Hotspots */}
+            <div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Active Congestion Hotspots ({bottlenecks.length})
+              </span>
+              <div className="mt-2 space-y-1.5">
+                {bottlenecks.map((bn) => (
+                  <div
+                    key={bn.id}
+                    className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/50 p-2.5 text-xs text-slate-900"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="size-3.5 text-rose-600 shrink-0" />
+                      <div>
+                        <p className="font-bold leading-tight">{bn.corridor_name}</p>
+                        <p className="text-[10px] text-slate-400">{bn.window}</p>
                       </div>
                     </div>
-                  </>
-                ) : (
-                  <div className="p-6 text-center text-xs text-[#9e9189]">
-                    Click any corridor or bottleneck pin on the map to view detailed flow telemetry.
+                    <span className="font-mono font-bold text-rose-600 shrink-0">
+                      +{bn.avg_delay_mins}m
+                    </span>
                   </div>
-                )}
-              </>
-            )}
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

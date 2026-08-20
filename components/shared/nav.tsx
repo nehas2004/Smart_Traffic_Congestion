@@ -102,7 +102,7 @@ export function Nav() {
             <span className="hidden xs:inline">Logout</span>
           </button>
         </div>
-      )}
-    </>
+      </div>
+    </header>
   )
 }
