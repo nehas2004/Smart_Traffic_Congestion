@@ -17,6 +17,26 @@ export async function GET(req: Request) {
 
   const corridors: CorridorDetail[] = []
 
+  // Helper for reverse geocoding to get human-readable street names
+  async function getStreetName(lat: number, lon: number, defaultName: string): Promise<string> {
+    try {
+      const geoUrl = `https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${KEY}`
+      const res = await fetch(geoUrl, { next: { revalidate: 300 } })
+      if (res.ok) {
+        const d = await res.json()
+        const addr = d.addresses?.[0]?.address
+        if (addr) {
+          const street = addr.streetName || addr.street || addr.freeformAddress || addr.municipalitySubdivision
+          if (street) {
+            const sub = addr.municipalitySubdivision || addr.municipality || ''
+            return sub && !street.includes(sub) ? `${street} (${sub})` : street
+          }
+        }
+      }
+    } catch (_) {}
+    return defaultName
+  }
+
   // 1. Fetch REAL TomTom Live Traffic Incidents in the 10km Bounding Box
   try {
     const incidentUrl = `https://api.tomtom.com/traffic/services/5/incidentDetails?bbox=${minLon},${minLat},${maxLon},${maxLat}&fields={incidents{type,geometry{type,coordinates},properties{iconCategory,magnitudeOfDelay,events{description,code},from,to,length,delay,roadNumbers}}}&key=${KEY}`
@@ -26,7 +46,7 @@ export async function GET(req: Request) {
       const incData = await incRes.json()
       const incidents = incData.incidents || []
 
-      incidents.slice(0, 10).forEach((inc: any, idx: number) => {
+      const incPromises = incidents.slice(0, 10).map(async (inc: any, idx: number) => {
         const props = inc.properties || {}
         const geom = inc.geometry || {}
         let coords: [number, number][] = []
@@ -62,9 +82,21 @@ export async function GET(req: Request) {
           congestion = 65
         }
 
-        corridors.push({
+        // Build human-friendly corridor label
+        let label = ''
+        if (props.from && props.to) {
+          label = `${props.from} → ${props.to}`
+        } else if (props.from) {
+          label = `${props.from} Corridor`
+        } else if (props.roadNumbers && props.roadNumbers.length > 0) {
+          label = `${props.roadNumbers.join('/')} Arterial`
+        } else {
+          label = await getStreetName(ptLat, ptLon, `Arterial Corridor`)
+        }
+
+        return {
           corridor_id: `inc-${idx + 1}`,
-          corridor_name: `Congested Point (${ptLat.toFixed(4)}°, ${ptLon.toFixed(4)}°)`,
+          corridor_name: label,
           timestamp: new Date().toISOString(),
           current_congestion: congestion,
           predicted_congestion: Math.min(100, Math.round(congestion * 1.12)),
@@ -76,8 +108,11 @@ export async function GET(req: Request) {
           historical_avg_delay: delayMins,
           coordinates: coords.length > 0 ? coords : [[ptLat, ptLon]],
           active_incidents: 1,
-        })
+        }
       })
+
+      const incResults = await Promise.all(incPromises)
+      corridors.push(...incResults)
     }
   } catch (err) {
     console.warn('TomTom incidents error:', err)
@@ -85,14 +120,14 @@ export async function GET(req: Request) {
 
   // 2. Sample 8 Radial Grid Coordinate Points within 10km radius
   const radialOffsets = [
-    { dLat: 0.0, dLon: 0.0 },
-    { dLat: 0.045, dLon: 0.015 },
-    { dLat: -0.045, dLon: -0.015 },
-    { dLat: 0.02, dLon: 0.06 },
-    { dLat: -0.02, dLon: -0.06 },
-    { dLat: 0.065, dLon: -0.035 },
-    { dLat: -0.065, dLon: 0.035 },
-    { dLat: 0.08, dLon: 0.04 },
+    { dLat: 0.0, dLon: 0.0, defaultName: 'Central Junction Corridor' },
+    { dLat: 0.045, dLon: 0.015, defaultName: 'North Arterial Bypass' },
+    { dLat: -0.045, dLon: -0.015, defaultName: 'South Feeder Expressway' },
+    { dLat: 0.02, dLon: 0.06, defaultName: 'East Commercial Hub Link' },
+    { dLat: -0.02, dLon: -0.06, defaultName: 'West Waterfront Highway' },
+    { dLat: 0.065, dLon: -0.035, defaultName: 'North-West Transit Corridor' },
+    { dLat: -0.065, dLon: 0.035, defaultName: 'South-East Ring Road' },
+    { dLat: 0.08, dLon: 0.04, defaultName: 'Outer Bypass Interchange' },
   ]
 
   const flowPromises = radialOffsets.map(async (offset, idx) => {
@@ -128,9 +163,11 @@ export async function GET(req: Request) {
           coords = flow.coordinates.coordinate.map((pt: any) => [pt.latitude, pt.longitude])
         }
 
+        const streetName = await getStreetName(ptLat, ptLon, offset.defaultName)
+
         const detail: CorridorDetail = {
           corridor_id: `grid-pt-${idx + 1}`,
-          corridor_name: `Point (${ptLat.toFixed(4)}°, ${ptLon.toFixed(4)}°)`,
+          corridor_name: streetName,
           timestamp: new Date().toISOString(),
           current_congestion: congestionIndex,
           predicted_congestion: Math.min(100, Math.max(10, Math.round(congestionIndex * 1.15))),
@@ -161,7 +198,7 @@ export async function GET(req: Request) {
       : [
           {
             corridor_id: 'pt-01',
-            corridor_name: `Point (${centerLat.toFixed(4)}°, ${centerLon.toFixed(4)}°)`,
+            corridor_name: `Central Sector Corridor`,
             timestamp: new Date().toISOString(),
             current_congestion: 45,
             predicted_congestion: 52,
