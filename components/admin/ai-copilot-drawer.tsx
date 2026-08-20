@@ -64,7 +64,7 @@ export function AICopilotDrawer() {
 
     try {
       const chatHistory = [...messages, userMsg].map(m => ({ role: m.role, content: m.content }))
-      const res = await fetch(`${AI_BACKEND}/copilot/chat`, {
+      const res = await fetch('/api/admin/copilot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
