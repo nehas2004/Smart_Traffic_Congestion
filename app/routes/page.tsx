@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, Suspense } from 'react'
+import { useEffect, useState, useRef, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Nav } from '@/components/shared/nav'
 import {
@@ -205,8 +205,7 @@ function RoutesContent() {
           fetch('/api/incidents').then((r) => r.json()).catch(() => []),
         ])
 
-        setForecasts(
-          rs.map((r: any, idx: number) => {
+        const calculatedForecasts = rs.map((r: any, idx: number) => {
             const summary = r.summary || {}
             const travelTimeSec = summary.travelTimeInSeconds || 1
             const noTrafficSec =
@@ -243,21 +242,39 @@ function RoutesContent() {
             }
 
             const finalDelay = Math.max(liveDelayMins + incidentDelaySum, hotspotDelaySum, fallbackDelay)
+            const extraDelayMins = Math.max(0, finalDelay - liveDelayMins)
+            const effectiveTotalTimeSec = travelTimeSec + extraDelayMins * 60
+            const effectiveEtaMins = Math.max(1, Math.round(effectiveTotalTimeSec / 60))
 
             let speedKmh = 48
             if (distKm > 0 && travelTimeSec > 0) {
-              const adjustedTimeSec = travelTimeSec + Math.max(0, finalDelay - liveDelayMins) * 60
-              speedKmh = Math.max(14, Math.round(distKm / (adjustedTimeSec / 3600)))
+              speedKmh = Math.max(14, Math.round(distKm / (effectiveTotalTimeSec / 3600)))
             }
 
             return {
               predictedSpeed: speedKmh,
               delay: finalDelay,
+              effectiveTotalTimeSec,
+              effectiveEtaMins,
               hotspots,
               reportedIncidents: matchingIncidents,
             }
           })
-        )
+
+        setForecasts(calculatedForecasts)
+
+        // Automatically select the fastest route with the lowest effective travel time + delay
+        if (calculatedForecasts.length > 0) {
+          let minTime = Infinity
+          let bestIdx = 0
+          calculatedForecasts.forEach((fc: any, i: number) => {
+            if (fc.effectiveTotalTimeSec < minTime) {
+              minTime = fc.effectiveTotalTimeSec
+              bestIdx = i
+            }
+          })
+          setSelectedRouteIdx(bestIdx)
+        }
         setLoading(false)
       })
       .catch(() => {
@@ -659,6 +676,20 @@ function RoutesContent() {
     )
   }
 
+  const recommendedRouteIdx = useMemo(() => {
+    if (!forecasts.length) return 0
+    let minTime = Infinity
+    let bestIdx = 0
+    forecasts.forEach((fc: any, i: number) => {
+      const t = fc?.effectiveTotalTimeSec ?? Infinity
+      if (t < minTime) {
+        minTime = t
+        bestIdx = i
+      }
+    })
+    return bestIdx
+  }, [forecasts])
+
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f5', display: 'flex', flexDirection: 'column' }}>
       <Nav />
@@ -795,10 +826,13 @@ function RoutesContent() {
 
               {routes.map((route, idx) => {
                 const summary = route.summary || {}
-                const etaMins = Math.round((summary.travelTimeInSeconds || 0) / 60)
-                const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const fc = forecasts[idx]
+                const etaMins = fc?.effectiveEtaMins || Math.round((summary.travelTimeInSeconds || 0) / 60)
+                const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const isSelected = selectedRouteIdx === idx
+                const isRecommended = idx === recommendedRouteIdx
+                const bestEtaMins = forecasts[recommendedRouteIdx]?.effectiveEtaMins || etaMins
+                const diffMins = etaMins - bestEtaMins
 
                 return (
                   <div
@@ -807,10 +841,18 @@ function RoutesContent() {
                     style={{
                       background: 'white',
                       borderRadius: 18,
-                      border: isSelected ? '2px solid #a67c52' : '1px solid #e8e0d5',
+                      border: isSelected
+                        ? '2px solid #a67c52'
+                        : isRecommended
+                        ? '2px solid #86efac'
+                        : '1px solid #e8e0d5',
                       padding: 20,
                       cursor: 'pointer',
-                      boxShadow: isSelected ? '0 8px 24px rgba(166,124,82,0.12)' : '0 2px 8px rgba(0,0,0,0.02)',
+                      boxShadow: isSelected
+                        ? '0 8px 24px rgba(166,124,82,0.12)'
+                        : isRecommended
+                        ? '0 4px 16px rgba(34,197,94,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.02)',
                       transition: 'all 0.2s ease',
                       position: 'relative',
                     }}
@@ -823,12 +865,27 @@ function RoutesContent() {
                               fontSize: 11,
                               fontWeight: 800,
                               textTransform: 'uppercase',
-                              color: isSelected ? '#a67c52' : '#9e9189',
+                              color: isRecommended ? '#16a34a' : isSelected ? '#a67c52' : '#9e9189',
                               letterSpacing: '0.05em',
                             }}
                           >
-                            Route {idx + 1} {idx === 0 ? '· Recommended' : '· Alternate'}
+                            Route {idx + 1} {isRecommended ? '· ⭐ Recommended (Fastest)' : diffMins > 0 ? `· Alternate (+${diffMins} min)` : '· Alternate'}
                           </span>
+                          {isRecommended && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                background: '#dcfce7',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              FASTEST
+                            </span>
+                          )}
                           {isSelected && (
                             <span
                               style={{
