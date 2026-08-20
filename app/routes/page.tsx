@@ -1,10 +1,6 @@
 'use client'
 
-<<<<<<< Updated upstream
-import { useEffect, useState, useRef, useMemo, Suspense } from 'react'
-=======
 import { useEffect, useState, useRef, Suspense, useCallback } from 'react'
->>>>>>> Stashed changes
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Nav } from '@/components/shared/nav'
 import {
@@ -147,7 +143,7 @@ function getHotspotsForRoute(route: any) {
   return hotspots
 }
 
-function CongestionBadge({ speed, delay }: { speed: number; delay?: number }) {
+function CongestionBadge({ speed, delay, freeFlowSpeed }: { speed: number; delay?: number; freeFlowSpeed?: number }) {
   if (delay && delay >= 8) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
@@ -162,24 +158,9 @@ function CongestionBadge({ speed, delay }: { speed: number; delay?: number }) {
       </span>
     )
   }
-  const ratio = speed / FREE_FLOW
-  if (ratio >= 0.85) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
-        <CheckCircle size={12} className="text-emerald-600" /> Free Flow
-      </span>
-    )
-  }
-  if (ratio >= 0.6) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200/80">
-        <AlertTriangle size={12} className="text-amber-600" /> Moderate Delay
-      </span>
-    )
-  }
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
-      <AlertTriangle size={12} className="text-rose-600" /> Severe Congestion
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+      <CheckCircle size={12} className="text-emerald-600" /> Free Flow
     </span>
   )
 }
@@ -421,7 +402,6 @@ function RoutesContent() {
           rList.forEach((r) => {
             const length = r.summary?.lengthInMeters || 0
             const time = r.summary?.travelTimeInSeconds || 0
-            // Coarse signature to deduplicate identical routes
             const sig = `${Math.round(length / 200)}_${Math.round(time / 45)}`
             if (!seenSignatures.has(sig)) {
               seenSignatures.add(sig)
@@ -450,7 +430,6 @@ function RoutesContent() {
           const lat2 = parseFloat(toLat)
           const lon2 = parseFloat(toLon)
 
-          // Compute midpoint with lateral offset
           const midLat = (lat1 + lat2) / 2 + (lon2 - lon1) * 0.25
           const midLon = (lon1 + lon2) / 2 - (lat2 - lat1) * 0.25
 
@@ -463,19 +442,23 @@ function RoutesContent() {
 
         const rs = combinedRoutes.length > 0 ? combinedRoutes.slice(0, 4) : []
         setRoutes(rs)
-<<<<<<< Updated upstream
-        const [preds, incidents] = await Promise.all([
-          fetch('/data/traffic_predictions.json').then((r) => r.json()).catch(() => null),
-          fetch('/api/incidents').then((r) => r.json()).catch(() => []),
-        ])
-=======
 
-        const preds = await fetch('/data/traffic_predictions.json')
-          .then((r) => r.json())
-          .catch(() => null)
->>>>>>> Stashed changes
+        // Query ML predictions (Linear Regression, Gradient Boosting, LSTM with Open-Meteo & TomTom 27 features)
+        const mlForecasts = await Promise.all(
+          rs.map(async (r: any) => {
+            const rawPts = r.legs?.[0]?.points || []
+            const midPt = rawPts[Math.floor(rawPts.length / 2)] || { latitude: parseFloat(fromLat), longitude: parseFloat(fromLon) }
+            try {
+              const mlRes = await fetch(`/api/predict?lat=${midPt.latitude}&lon=${midPt.longitude}`).then((res) => res.json())
+              return mlRes
+            } catch (_) {
+              return null
+            }
+          })
+        )
 
-        const calculatedForecasts = rs.map((r: any, idx: number) => {
+        setForecasts(
+          rs.map((r: any, idx: number) => {
             const summary = r.summary || {}
             const travelTimeSec = summary.travelTimeInSeconds || 1
             const noTrafficSec =
@@ -489,94 +472,55 @@ function RoutesContent() {
             const liveDelayMins = Math.round(trafficDelaySec / 60)
             const hotspots = getHotspotsForRoute(r)
             const hotspotDelaySum = hotspots.reduce((acc, h) => acc + h.delay, 0)
-            const fallbackDelay = preds?.forecast?.[idx]?.delay_mins || 0
+            
+            const mlItem = mlForecasts[idx]
+            const mlDelaySec = mlItem?.projected_delay_sec || 0
+            const mlDelayMins = Math.round(mlDelaySec / 60)
 
-            // Check if any reported local incidents (Temple Fest, Accident, Concert, etc.) lie near route points
-            const pts = (r?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude])
-            const matchingIncidents: any[] = []
-            let incidentDelaySum = 0
+            const finalDelay = Math.max(liveDelayMins, hotspotDelaySum, mlDelayMins)
 
-            if (Array.isArray(incidents)) {
-              incidents.forEach((inc: any) => {
-                if (!inc.active || !inc.lat || !inc.lon) return
-                const isNear = pts.some((pt: any) => {
-                  const dLat = Math.abs(pt[0] - inc.lat)
-                  const dLon = Math.abs(pt[1] - inc.lon)
-                  return dLat < 0.015 && dLon < 0.015 // ~1.5km
-                })
-                if (isNear) {
-                  matchingIncidents.push(inc)
-                  incidentDelaySum += inc.expected_delay_mins || 15
-                }
-              })
-            }
-
-            const finalDelay = Math.max(liveDelayMins + incidentDelaySum, hotspotDelaySum, fallbackDelay)
-            const extraDelayMins = Math.max(0, finalDelay - liveDelayMins)
-            const effectiveTotalTimeSec = travelTimeSec + extraDelayMins * 60
-            const effectiveEtaMins = Math.max(1, Math.round(effectiveTotalTimeSec / 60))
-
-            let speedKmh = 48
-            if (distKm > 0 && travelTimeSec > 0) {
-              speedKmh = Math.max(14, Math.round(distKm / (effectiveTotalTimeSec / 3600)))
-            }
+            const freeFlowSpeed = noTrafficSec > 0 ? Math.round(distKm / (noTrafficSec / 3600)) : 45
+            let speedKmh = travelTimeSec > 0 ? Math.round(distKm / (travelTimeSec / 3600)) : freeFlowSpeed
+            if (speedKmh <= 0) speedKmh = freeFlowSpeed
 
             // Synthesize segment breakdown
-            let fastP = 70
-            let modP = 20
-            let slowP = 10
+            let fastP = 85
+            let modP = 15
+            let slowP = 0
             let heavyP = 0
 
             if (finalDelay >= 12) {
-              fastP = 40
-              modP = 20
+              fastP = 35
+              modP = 25
               slowP = 20
               heavyP = 20
             } else if (finalDelay >= 6) {
-              fastP = 55
-              modP = 25
+              fastP = 50
+              modP = 30
               slowP = 20
               heavyP = 0
             } else if (finalDelay >= 2) {
-              fastP = 75
-              modP = 20
+              fastP = 70
+              modP = 25
               slowP = 5
               heavyP = 0
             } else {
-              fastP = 90
-              modP = 10
+              fastP = 95
+              modP = 5
               slowP = 0
               heavyP = 0
             }
 
             return {
               predictedSpeed: speedKmh,
+              freeFlowSpeed,
               delay: finalDelay,
-              effectiveTotalTimeSec,
-              effectiveEtaMins,
               hotspots,
-<<<<<<< Updated upstream
-              reportedIncidents: matchingIncidents,
-=======
+              mlModel: mlItem?.predictions_15min_ahead,
               segmentProportions: { fast: fastP, moderate: modP, slow: slowP, heavy: heavyP },
->>>>>>> Stashed changes
             }
           })
-
-        setForecasts(calculatedForecasts)
-
-        // Automatically select the fastest route with the lowest effective travel time + delay
-        if (calculatedForecasts.length > 0) {
-          let minTime = Infinity
-          let bestIdx = 0
-          calculatedForecasts.forEach((fc: any, i: number) => {
-            if (fc.effectiveTotalTimeSec < minTime) {
-              minTime = fc.effectiveTotalTimeSec
-              bestIdx = i
-            }
-          })
-          setSelectedRouteIdx(bestIdx)
-        }
+        )
         setLoading(false)
       } catch (err) {
         setError('Failed to load routes. Check your connection or API key.')
@@ -825,13 +769,15 @@ function RoutesContent() {
           markersRef.current.push(routeLabelMarker)
         }
 
-        // Sample route coordinates for Heatmap calculation
-        const step = Math.max(1, Math.floor(pts.length / 50))
-        const baseIntensity = Math.min(0.9, Math.max(0.2, delay / 15))
+        // Sample route coordinates for Heatmap calculation strictly when delay is present
+        if (delay >= 2) {
+          const step = Math.max(3, Math.floor(pts.length / 25))
+          const baseIntensity = Math.min(0.85, Math.max(0.3, delay / 12))
 
-        for (let i = 0; i < pts.length; i += step) {
-          const pt = pts[i]
-          heatPoints.push([pt[0], pt[1], baseIntensity])
+          for (let i = 0; i < pts.length; i += step) {
+            const pt = pts[i]
+            heatPoints.push([pt[0], pt[1], baseIntensity])
+          }
         }
       })
 
@@ -1011,7 +957,7 @@ function RoutesContent() {
         } else if (!document.getElementById('leaflet-heat-js')) {
           const heatScript = document.createElement('script')
           heatScript.id = 'leaflet-heat-js'
-          heatScript.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet.heat.js'
+          heatScript.src = 'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js'
           heatScript.onload = () => initMap(L)
           document.head.appendChild(heatScript)
         } else {
@@ -1044,253 +990,7 @@ function RoutesContent() {
     }
   }, [activeParams?.fromLat, activeParams?.fromLon, KEY, renderMapLayers])
 
-<<<<<<< Updated upstream
-  // Render Routes, Heatmap, and Markers
-  const renderMapLayers = (L: any, map: any) => {
-    if (!L || !map) return
-
-    // Clear polylines and markers
-    polylinesRef.current.forEach((p) => {
-      try {
-        p.remove()
-      } catch (_) {}
-    })
-    markersRef.current.forEach((m) => {
-      try {
-        m.remove()
-      } catch (_) {}
-    })
-    polylinesRef.current = []
-    markersRef.current = []
-
-    if (heatLayerRef.current) {
-      try {
-        map.removeLayer(heatLayerRef.current)
-      } catch (_) {}
-      heatLayerRef.current = null
-    }
-
-    if (!routes || routes.length === 0) return
-
-    const heatPoints: [number, number, number][] = []
-
-    // 1. Draw Routes
-    routes.forEach((route, idx) => {
-      const isSelected = idx === selectedRouteIdx
-      const pts = (route?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude] as [number, number])
-      if (pts.length < 2) return
-
-      const fc = forecasts[idx]
-      const delay = fc?.delay || 0
-      const routeColor = isSelected
-        ? delay > 8
-          ? '#dc2626'
-          : delay > 3
-          ? '#ea580c'
-          : '#2c2825'
-        : '#9e9189'
-
-      // Background glow for selected route
-      if (isSelected) {
-        const glow = L.polyline(pts, {
-          color: '#c8a97e',
-          weight: 12,
-          opacity: 0.5,
-          lineCap: 'round',
-        }).addTo(map)
-        polylinesRef.current.push(glow)
-      }
-
-      // Core route line
-      const polyline = L.polyline(pts, {
-        color: routeColor,
-        weight: isSelected ? 6 : 4,
-        opacity: isSelected ? 1 : 0.6,
-        dashArray: isSelected ? undefined : '6, 6',
-      }).addTo(map)
-
-      polyline.on('click', () => {
-        setSelectedRouteIdx(idx)
-      })
-
-      polyline.bindTooltip(
-        `<strong>Route ${idx + 1} (${isSelected ? 'Selected' : 'Alternate'})</strong><br/>` +
-          `ETA: ${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)} min · ${((route.summary?.lengthInMeters || 0) / 1000).toFixed(1)} km`,
-        { sticky: true }
-      )
-
-      polylinesRef.current.push(polyline)
-
-      // Sample route coordinates for Heatmap calculation
-      if (isSelected || routes.length === 1) {
-        const step = Math.max(1, Math.floor(pts.length / 50))
-        const baseIntensity = Math.min(0.9, Math.max(0.2, (delay / 15)))
-
-        for (let i = 0; i < pts.length; i += step) {
-          const pt = pts[i]
-          heatPoints.push([pt[0], pt[1], baseIntensity])
-        }
-      }
-    })
-
-    // 2. Add Hotspots & Bottlenecks to Heatmap & Markers
-    const currentForecast = forecasts[selectedRouteIdx]
-    const hotspots = currentForecast?.hotspots || []
-
-    hotspots.forEach((hs: any) => {
-      if (hs.lat && hs.lon) {
-        // High thermal weight for bottleneck locations
-        heatPoints.push([hs.lat, hs.lon, hs.intensity || 0.95])
-        heatPoints.push([hs.lat + 0.001, hs.lon + 0.001, hs.intensity ? hs.intensity * 0.8 : 0.75])
-        heatPoints.push([hs.lat - 0.001, hs.lon - 0.001, hs.intensity ? hs.intensity * 0.8 : 0.75])
-
-        // Hotspot warning marker
-        const warningIcon = L.divIcon({
-          html: `
-            <div style="
-              width: 28px; height: 28px; border-radius: 50%;
-              background: #dc2626; color: white;
-              display: flex; align-items: center; justify-content: center;
-              border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-              cursor: pointer;
-            ">
-              <span style="font-size: 14px; font-weight: 900;">!</span>
-            </div>
-          `,
-          className: '',
-          iconSize: [28, 28],
-          iconAnchor: [14, 14],
-        })
-
-        const marker = L.marker([hs.lat, hs.lon], { icon: warningIcon }).addTo(map)
-        marker.bindPopup(`
-          <div style="font-family: system-ui; min-width: 170px; padding: 2px;">
-            <div style="font-size: 10px; font-weight: 700; color: #dc2626; text-transform: uppercase;">Traffic Bottleneck</div>
-            <div style="font-weight: 800; font-size: 13px; color: #2c2825; margin-top: 2px;">${hs.name}</div>
-            <div style="font-size: 12px; color: #dc2626; font-weight: 700; margin-top: 4px;">+${hs.delay} min delay</div>
-            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">Severity: ${hs.severity}</div>
-          </div>
-        `)
-        markersRef.current.push(marker)
-      }
-    })
-
-    // 3. Render Reported Local Event Incidents (Temple Fest, Accident, Concert, etc.)
-    const reportedIncidents = currentForecast?.reportedIncidents || []
-    reportedIncidents.forEach((inc: any) => {
-      if (inc.lat && inc.lon) {
-        heatPoints.push([inc.lat, inc.lon, 1.0])
-        heatPoints.push([inc.lat + 0.002, inc.lon + 0.002, 0.85])
-        heatPoints.push([inc.lat - 0.002, inc.lon - 0.002, 0.85])
-
-        let emoji = '⚠️'
-        if (inc.category === 'temple_fest') emoji = '🎪'
-        else if (inc.category === 'accident') emoji = '💥'
-        else if (inc.category === 'concert') emoji = '🎸'
-        else if (inc.category === 'construction') emoji = '🚧'
-        else if (inc.category === 'weather_hazard') emoji = '⛈️'
-        else if (inc.category === 'procession') emoji = '🚩'
-
-        const incIcon = L.divIcon({
-          html: `
-            <div style="
-              width: 36px; height: 36px; border-radius: 50%;
-              background: #991b1b; color: white;
-              display: flex; align-items: center; justify-content: center;
-              border: 2.5px solid white; box-shadow: 0 4px 14px rgba(220,38,38,0.6);
-              cursor: pointer; font-size: 18px; position: relative;
-            ">
-              <span style="
-                position: absolute; inset: -3px; border-radius: 50%;
-                border: 2px solid #ef4444; animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
-                opacity: 0.85; pointer-events: none;
-              "></span>
-              <span>${emoji}</span>
-            </div>
-          `,
-          className: '',
-          iconSize: [36, 36],
-          iconAnchor: [18, 18],
-        })
-
-        const marker = L.marker([inc.lat, inc.lon], { icon: incIcon, zIndexOffset: 2000 }).addTo(map)
-        marker.bindPopup(`
-          <div style="font-family: system-ui; min-width: 190px; padding: 2px;">
-            <div style="font-size: 10px; font-weight: 800; color: #dc2626; text-transform: uppercase;">${emoji} REPORTED EVENT DISRUPTION</div>
-            <b style="font-size: 13px; color: #2c2825; display: block; margin-top: 2px;">${inc.title}</b>
-            <div style="color: #b91c1c; font-size: 11px; font-weight: 800; margin-top: 4px;">Expected Delay: +${inc.expected_delay_mins} mins</div>
-            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${inc.description || ''}</div>
-          </div>
-        `)
-        markersRef.current.push(marker)
-      }
-    })
-
-    // 3. Start & End Origin/Destination Markers
-    const selectedRoute = routes[selectedRouteIdx]
-    const pts = selectedRoute?.legs?.[0]?.points || []
-    if (pts.length > 1) {
-      const startPt = [pts[0].latitude, pts[0].longitude] as [number, number]
-      const endPt = [pts[pts.length - 1].latitude, pts[pts.length - 1].longitude] as [number, number]
-
-      const startIcon = L.divIcon({
-        html: `
-          <div style="
-            background: #16a34a; width: 18px; height: 18px; border-radius: 50%;
-            border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-          "></div>
-        `,
-        className: '',
-        iconAnchor: [9, 9],
-      })
-
-      const endIcon = L.divIcon({
-        html: `
-          <div style="
-            background: #2c2825; width: 20px; height: 20px; border-radius: 50%;
-            border: 3px solid #c8a97e; box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            display: flex; align-items: center; justify-content: center;
-          ">
-            <div style="width: 6px; height: 6px; border-radius: 50%; background: #c8a97e;"></div>
-          </div>
-        `,
-        className: '',
-        iconAnchor: [10, 10],
-      })
-
-      const startMarker = L.marker(startPt, { icon: startIcon }).bindPopup(`<b>Origin</b><br/>${fromName}`).addTo(map)
-      const endMarker = L.marker(endPt, { icon: endIcon }).bindPopup(`<b>Destination</b><br/>${toName}`).addTo(map)
-      markersRef.current.push(startMarker, endMarker)
-
-      // Fit map bounds to the active route
-      const latLngs = pts.map((p: any) => [p.latitude, p.longitude])
-      map.fitBounds(L.latLngBounds(latLngs), { padding: [50, 50], maxZoom: 15 })
-    }
-
-    // 4. Render Congestion Heatmap Layer (if heatLayer available)
-    if (L.heatLayer && heatPoints.length > 0 && showHeatmap) {
-      const heat = L.heatLayer(heatPoints, {
-        radius: 28,
-        blur: 20,
-        maxZoom: 16,
-        max: 1.0,
-        gradient: {
-          0.2: '#10b981',
-          0.4: '#eab308',
-          0.6: '#f97316',
-          0.8: '#dc2626',
-          1.0: '#7f1d1d',
-        },
-      })
-      heat.addTo(map)
-      heatLayerRef.current = heat
-    }
-  }
-
-  // Update map whenever routes, selection, or heatmap toggles change
-=======
   // Update map when routes, selection, or layer toggles change
->>>>>>> Stashed changes
   useEffect(() => {
     if (mapRef.current && (window as any).L) {
       renderMapLayers((window as any).L, mapRef.current)
@@ -1362,21 +1062,6 @@ function RoutesContent() {
     )
   }
 
-<<<<<<< Updated upstream
-  const recommendedRouteIdx = useMemo(() => {
-    if (!forecasts.length) return 0
-    let minTime = Infinity
-    let bestIdx = 0
-    forecasts.forEach((fc: any, i: number) => {
-      const t = fc?.effectiveTotalTimeSec ?? Infinity
-      if (t < minTime) {
-        minTime = t
-        bestIdx = i
-      }
-    })
-    return bestIdx
-  }, [forecasts])
-=======
   // Quick preset helper
   const handleQuickPreset = (minutesToAdd: number) => {
     if (minutesToAdd === 0) {
@@ -1445,7 +1130,6 @@ function RoutesContent() {
       setError('Failed to search routes.')
     }
   }
->>>>>>> Stashed changes
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans">
@@ -1773,101 +1457,19 @@ function RoutesContent() {
             {!loading &&
               routes.map((route, idx) => {
                 const summary = route.summary || {}
-<<<<<<< Updated upstream
-=======
                 const etaMins = Math.round((summary.travelTimeInSeconds || 0) / 60)
                 const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const fuelEst = Math.max(25, Math.round(parseFloat(distKm) * 7.5))
->>>>>>> Stashed changes
                 const fc = forecasts[idx]
-                const etaMins = fc?.effectiveEtaMins || Math.round((summary.travelTimeInSeconds || 0) / 60)
-                const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const isSelected = selectedRouteIdx === idx
-<<<<<<< Updated upstream
-                const isRecommended = idx === recommendedRouteIdx
-                const bestEtaMins = forecasts[recommendedRouteIdx]?.effectiveEtaMins || etaMins
-                const diffMins = etaMins - bestEtaMins
-=======
                 const isTopRoute = idx === 0
                 const seg = fc?.segmentProportions || { fast: 70, moderate: 20, slow: 10, heavy: 0 }
                 const delayVal = fc?.delay || 0
->>>>>>> Stashed changes
 
                 return (
                   <div
                     key={idx}
                     onClick={() => setSelectedRouteIdx(idx)}
-<<<<<<< Updated upstream
-                    style={{
-                      background: 'white',
-                      borderRadius: 18,
-                      border: isSelected
-                        ? '2px solid #a67c52'
-                        : isRecommended
-                        ? '2px solid #86efac'
-                        : '1px solid #e8e0d5',
-                      padding: 20,
-                      cursor: 'pointer',
-                      boxShadow: isSelected
-                        ? '0 8px 24px rgba(166,124,82,0.12)'
-                        : isRecommended
-                        ? '0 4px 16px rgba(34,197,94,0.08)'
-                        : '0 2px 8px rgba(0,0,0,0.02)',
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 800,
-                              textTransform: 'uppercase',
-                              color: isRecommended ? '#16a34a' : isSelected ? '#a67c52' : '#9e9189',
-                              letterSpacing: '0.05em',
-                            }}
-                          >
-                            Route {idx + 1} {isRecommended ? '· ⭐ Recommended (Fastest)' : diffMins > 0 ? `· Alternate (+${diffMins} min)` : '· Alternate'}
-                          </span>
-                          {isRecommended && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                background: '#dcfce7',
-                                color: '#166534',
-                                border: '1px solid #bbf7d0',
-                                padding: '2px 6px',
-                                borderRadius: 4,
-                              }}
-                            >
-                              FASTEST
-                            </span>
-                          )}
-                          {isSelected && (
-                            <span
-                              style={{
-                                fontSize: 10,
-                                fontWeight: 800,
-                                background: '#2c2825',
-                                color: '#c8a97e',
-                                padding: '2px 6px',
-                                borderRadius: 4,
-                              }}
-                            >
-                              ACTIVE ON MAP
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-                          <span style={{ fontSize: 32, fontWeight: 900, color: '#2c2825', lineHeight: 1 }}>{etaMins}</span>
-                          <span style={{ fontSize: 15, fontWeight: 600, color: '#9e9189' }}>min</span>
-                          <span style={{ color: '#e8e0d5', margin: '0 4px' }}>·</span>
-                          <span style={{ fontSize: 13, color: '#6b625b', fontWeight: 600 }}>{distKm} km</span>
-                        </div>
-=======
                     className={`bg-white rounded-2xl p-5 cursor-pointer transition-all duration-200 border relative ${
                       isSelected
                         ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/20'
@@ -1894,10 +1496,9 @@ function RoutesContent() {
                             Active
                           </span>
                         )}
->>>>>>> Stashed changes
                       </div>
 
-                      <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} />
+                      <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
                     </div>
 
                     {/* Large Duration Text & Distance / Fuel Details */}
@@ -2009,44 +1610,6 @@ function RoutesContent() {
                       ) : (
                         <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5 mt-2">
                           <CheckCircle size={12} /> Clear route with no major bottlenecks
-                        </div>
-                      )}
-
-                      {/* Active Local Event / Disruption Warning Banner */}
-                      {fc?.reportedIncidents && fc.reportedIncidents.length > 0 && (
-                        <div
-                          style={{
-                            marginTop: 10,
-                            background: '#fef2f2',
-                            border: '1.5px solid #fca5a5',
-                            borderRadius: 12,
-                            padding: '10px 12px',
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#dc2626' }}>
-                            <span>🚨 REPORTED EVENT / DISRUPTION ON THIS ROUTE</span>
-                          </div>
-                          {fc.reportedIncidents.map((inc: any, i: number) => {
-                            let emoji = '⚠️'
-                            if (inc.category === 'temple_fest') emoji = '🎪'
-                            else if (inc.category === 'accident') emoji = '💥'
-                            else if (inc.category === 'concert') emoji = '🎸'
-                            else if (inc.category === 'construction') emoji = '🚧'
-                            else if (inc.category === 'weather_hazard') emoji = '⛈️'
-                            else if (inc.category === 'procession') emoji = '🚩'
-
-                            return (
-                              <div key={i} style={{ marginTop: 6, fontSize: 12 }}>
-                                <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <span>{emoji}</span>
-                                  <span>{inc.title}</span>
-                                </div>
-                                <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2, fontWeight: 600 }}>
-                                  +{inc.expected_delay_mins} min delay expected · {inc.description}
-                                </div>
-                              </div>
-                            )
-                          })}
                         </div>
                       )}
                     </div>
