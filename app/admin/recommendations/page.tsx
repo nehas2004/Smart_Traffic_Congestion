@@ -45,7 +45,13 @@ export default function RecommendationsPage() {
     try {
       const stored = localStorage.getItem('planner_active_city')
       if (stored) {
-        setActiveSector(JSON.parse(stored))
+        const parsed = JSON.parse(stored)
+        setActiveSector(prev => {
+          if (prev && prev.lat === parsed.lat && prev.lon === parsed.lon) {
+            return prev
+          }
+          return parsed
+        })
       }
     } catch (_) {}
 

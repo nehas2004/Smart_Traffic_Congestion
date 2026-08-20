@@ -398,16 +398,6 @@ export default function PublicHomePage() {
               </div>
             </div>
 
-            {/* ── FORECAST ── */}
-            <div style={{ marginBottom: 32 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <h2 style={{ fontSize: 16, fontWeight: 800, color: '#2c2825', margin: 0 }}>15-Minute Forecast</h2>
-                <Link href="/public/forecast" style={{ fontSize: 12, fontWeight: 700, color: '#a67c52', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Full forecast <ArrowRight size={12} />
-                </Link>
-              </div>
-              <ForecastSummary corridors={displayedCorridors} variant="compact" />
-            </div>
 
             {/* ── EVENTS TEASER ── */}
             {events.length > 0 && (

@@ -63,7 +63,6 @@ export function Nav() {
             {[
               { href: '/public',          label: 'Home' },
               { href: '/public/traffic',  label: 'Traffic' },
-              { href: '/public/forecast', label: 'Forecast' },
             ].map(({ href, label }) => {
               const active = pathname === href
               return (

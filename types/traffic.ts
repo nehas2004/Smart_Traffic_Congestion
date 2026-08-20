@@ -44,6 +44,18 @@ export interface EventImpact {
   severity_increase: SeverityLevel
 }
 
+export interface RecommendationOption {
+  id: string
+  strategy_type: 'signal_timing' | 'dynamic_reroute' | 'officer_dispatch'
+  title: string
+  action: string
+  reason: string
+  expected_impact: string
+  side_effect_tradeoff: string
+  confidence: 'low' | 'medium' | 'high'
+  is_recommended?: boolean
+}
+
 export interface TrafficRecommendation {
   id: string
   corridor_id: string
@@ -58,6 +70,7 @@ export interface TrafficRecommendation {
   current_congestion: number
   predicted_congestion: number
   severity: SeverityLevel
+  options?: RecommendationOption[]
   bottleneck?: BottleneckItem
   event_impact?: EventImpact
 }
