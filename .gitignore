@@ -17,9 +17,12 @@ node_modules
 .next/
 .DS_Store
 
-# Python ignores
+# Python & Database ignores
 __pycache__/
 *.pyc
+*.db
+*.sqlite
+*.sqlite3
 venv/
 .venv/
 
