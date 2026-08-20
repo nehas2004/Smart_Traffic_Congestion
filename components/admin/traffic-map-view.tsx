@@ -19,6 +19,7 @@ import {
   Flame,
   ShieldAlert,
   Building2,
+  Search,
 } from 'lucide-react'
 
 interface TrafficMapViewProps {
@@ -77,6 +78,11 @@ export function TrafficMapView({
     propCoords ? [propCoords.lat, propCoords.lon] : [10.0033, 76.2996]
   )
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
   const [incidents, setIncidents] = useState<ReportedIncident[]>([])
   const [showRecommendations, setShowRecommendations] = useState(true)
   const [activeCorridor, setActiveCorridor] = useState<CorridorDetail | null>(null)
@@ -85,6 +91,53 @@ export function TrafficMapView({
   const [mapLayerMode, setMapLayerMode] = useState<'hybrid' | 'heatmap' | 'flow'>('hybrid')
 
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
+
+  const handleSelectLocation = (lat: number, lon: number, name: string) => {
+    setCurrentCityName(name)
+    setCurrentCenter([lat, lon])
+    setSearchQuery('')
+    setShowSuggestions(false)
+    try {
+      localStorage.setItem('planner_active_city', JSON.stringify({ lat, lon, name, cityName: name }))
+    } catch (_) {}
+    window.dispatchEvent(new CustomEvent('planner_city_changed', { detail: { lat, lon, name, cityName: name } }))
+    if (mapRef.current) {
+      mapRef.current.flyTo([lat, lon], 13, { duration: 1.0 })
+    }
+  }
+
+  const handleSearchInput = async (val: string) => {
+    setSearchQuery(val)
+    if (!val || val.trim().length < 2) {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    setIsSearching(true)
+    try {
+      const res = await fetch(`/api/admin/geocode?query=${encodeURIComponent(val.trim())}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSearchSuggestions(data.results || [])
+        setShowSuggestions(true)
+      }
+    } catch (e) {
+      console.warn('Error fetching geocode:', e)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+    if (searchSuggestions.length > 0) {
+      const first = searchSuggestions[0]
+      handleSelectLocation(first.lat, first.lon, first.name)
+    } else {
+      await handleSearchInput(searchQuery)
+    }
+  }
 
   // Sync with props when parent updates
   useEffect(() => {

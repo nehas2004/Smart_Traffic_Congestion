@@ -1,19 +1,24 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { TrafficMapView } from '@/components/admin/traffic-map-view'
+import { ActiveIncidentsPanel } from '@/components/admin/active-incidents-panel'
+import { DecisionSupportCard } from '@/components/admin/decision-support-card'
 import { ReportIncidentModal } from '@/components/admin/report-incident-modal'
 import {
   fetchCurrentTraffic,
   fetchBottlenecks,
   fetchRecommendations,
+  submitDecision,
 } from '@/lib/admin-api'
 import {
   CorridorDetail,
   BottleneckItem,
   TrafficRecommendation,
+  DecisionAction,
 } from '@/types/traffic'
-import { RefreshCw, Flame } from 'lucide-react'
+import { RefreshCw, Flame, ArrowLeft } from 'lucide-react'
 
 export default function AdminTrafficMapPage() {
   const [corridors, setCorridors] = useState<CorridorDetail[]>([])
@@ -98,6 +103,27 @@ export default function AdminTrafficMapPage() {
       window.removeEventListener('incident_resolved', onIncidentResolved)
     }
   }, [loadData])
+
+  const selectedRecommendation = recommendations.find((r) => r.corridor_id === selectedCorridorId) || recommendations[0]
+
+  const handleDecision = async (
+    recommendationId: string,
+    action: DecisionAction,
+    modifiedParameters?: Record<string, any>,
+    reason?: string
+  ) => {
+    try {
+      await submitDecision({
+        recommendation_id: recommendationId,
+        action,
+        modified_parameters: modifiedParameters,
+        reason,
+      })
+      await loadData()
+    } catch (e) {
+      console.error('Error submitting decision:', e)
+    }
+  }
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
