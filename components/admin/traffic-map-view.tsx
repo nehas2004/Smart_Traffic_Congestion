@@ -20,6 +20,8 @@ import {
   ShieldAlert,
   Building2,
   Search,
+  Crosshair,
+  MapPin,
 } from 'lucide-react'
 
 interface TrafficMapViewProps {
@@ -819,10 +821,10 @@ export function TrafficMapView({
             )}
             <button
               type="submit"
-              disabled={isSearching || isFetchingTraffic}
+              disabled={isSearching || isLoading}
               className="absolute right-1.5 flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
             >
-              {isSearching || isFetchingTraffic ? (
+              {isSearching || isLoading ? (
                 <RefreshCw className="size-3.5 animate-spin" />
               ) : (
                 <>
