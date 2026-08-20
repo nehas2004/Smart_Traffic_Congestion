@@ -24,6 +24,7 @@ import {
   Compass,
   ChevronDown,
   X,
+  Zap,
 } from 'lucide-react'
 import { calculateFuelCost } from '@/components/dashboard/commuter/fuel-cost-calculator'
 import { ForecastChart } from '@/components/dashboard/commuter/forecast-chart'
