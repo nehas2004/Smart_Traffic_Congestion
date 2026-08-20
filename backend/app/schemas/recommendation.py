@@ -4,29 +4,31 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 
 
+# ── Multi-Option Scenario Strategy Schema ───────────────────────────────────────
+
+class RecommendationOption(BaseModel):
+    id: str                                  # e.g. "opt-1", "opt-2", "opt-3"
+    strategy_type: Literal["signal_timing", "dynamic_reroute", "officer_dispatch"]
+    title: str
+    action: str
+    reason: str
+    expected_impact: str                    # e.g. "-18% main corridor queue"
+    side_effect_tradeoff: str               # e.g. "+4% cross-street delay"
+    confidence: Literal["low", "medium", "high"]
+    is_recommended: bool = False
+
+
 # ── LLM output schema — validated against every API response ─────────────────
 
 class RecommendationOutput(BaseModel):
     """
-    Exact 4-field schema the LLM must return.
-    Any deviation causes silent fallback — never surfaced to the client.
+    Schema containing top action summary + 3 strategy options.
     """
     action: str
     reason: str
     expected_effect: str
     confidence: Literal["low", "medium", "high"]
-
-    @field_validator("action", "reason", "expected_effect")
-    @classmethod
-    def no_empty_strings(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Field must not be empty")
-        # Soft truncation guard — reject if suspiciously long (LLM hallucination)
-        if len(v) > 500:
-            raise ValueError(f"Field too long ({len(v)} chars), expected < 500")
-        return v.strip()
-
-    model_config = {"extra": "forbid"}   # Reject any extra keys the LLM adds
+    options: List[RecommendationOption] = []
 
 
 # ── Recommendation with ID — returned to frontend ────────────────────────────
@@ -37,6 +39,19 @@ class RecommendationWithId(RecommendationOutput):
     predicted_congestion: int
     severity: str
     generated_at: str                    # ISO timestamp
+
+
+# ── Co-Pilot Assistant Schemas ───────────────────────────────────────────────
+
+class CopilotMessage(BaseModel):
+    role: Literal["user", "assistant", "system"]
+    content: str
+
+class CopilotChatInput(BaseModel):
+    messages: List[CopilotMessage]
+    lat: Optional[float] = 10.0601
+    lon: Optional[float] = 76.6214
+    city: Optional[str] = None
 
 
 # ── Input context — built server-side, never from raw client input ────────────

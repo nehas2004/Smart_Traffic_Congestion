@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { BottleneckItem, SeverityLevel } from '@/types/traffic'
+import { TrafficBottleneck } from '@/lib/admin-api'
 import { Card } from '@/components/ui/card'
 import {
   AlertTriangle,
@@ -15,7 +16,7 @@ import {
 } from 'lucide-react'
 
 interface AdminBottleneckTableProps {
-  bottlenecks: BottleneckItem[]
+  bottlenecks: Array<BottleneckItem | TrafficBottleneck>
   onSelectBottleneck?: (corridorId: string) => void
 }
 
@@ -93,6 +94,7 @@ export function AdminBottleneckTable({
               <th className="px-4 py-3">Severity</th>
               <th className="px-4 py-3">Avg Delay</th>
               <th className="px-4 py-3">Trend</th>
+              <th className="px-4 py-3">Predicted TTI</th>
               <th className="px-4 py-3">Confidence</th>
               <th className="px-5 py-3 text-right">Action</th>
             </tr>
@@ -100,6 +102,7 @@ export function AdminBottleneckTable({
           <tbody className="divide-y divide-[#f0ece7]">
             {filtered.map((item) => {
               const badge = sevBadge[item.severity] || sevBadge.moderate
+              const predictedTti = 'predicted_congestion' in item ? item.predicted_congestion : undefined
               return (
                 <tr
                   key={item.id}
@@ -151,8 +154,11 @@ export function AdminBottleneckTable({
                       <span>{Math.abs(item.trend_percent)}%</span>
                     </div>
                   </td>
+                  <td className="px-4 py-3.5 font-mono font-extrabold text-[#2c2825]">
+                    {predictedTti?.toFixed(2) ?? 'Unavailable'}
+                  </td>
                   <td className="px-4 py-3.5 font-mono text-[#6b625b]">
-                    {(item.confidence * 100).toFixed(0)}%
+                    {item.confidence == null ? 'Unavailable' : `${(item.confidence * 100).toFixed(0)}%`}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <button
@@ -167,7 +173,7 @@ export function AdminBottleneckTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-xs text-[#9e9189]">
+                <td colSpan={8} className="px-5 py-8 text-center text-xs text-[#9e9189]">
                   No bottlenecks matching current search or filters.
                 </td>
               </tr>

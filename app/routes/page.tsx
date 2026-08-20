@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef, Suspense } from 'react'
+import { useEffect, useState, useRef, useMemo, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Nav } from '@/components/shared/nav'
 import {
@@ -200,12 +200,12 @@ function RoutesContent() {
       .then(async (data) => {
         const rs = data.routes || []
         setRoutes(rs)
-        const preds = await fetch('/data/traffic_predictions.json')
-          .then((r) => r.json())
-          .catch(() => null)
+        const [preds, incidents] = await Promise.all([
+          fetch('/data/traffic_predictions.json').then((r) => r.json()).catch(() => null),
+          fetch('/api/incidents').then((r) => r.json()).catch(() => []),
+        ])
 
-        setForecasts(
-          rs.map((r: any, idx: number) => {
+        const calculatedForecasts = rs.map((r: any, idx: number) => {
             const summary = r.summary || {}
             const travelTimeSec = summary.travelTimeInSeconds || 1
             const noTrafficSec =
@@ -221,21 +221,60 @@ function RoutesContent() {
             const hotspotDelaySum = hotspots.reduce((acc, h) => acc + h.delay, 0)
             const fallbackDelay = preds?.forecast?.[idx]?.delay_mins || 0
 
-            const finalDelay = Math.max(liveDelayMins, hotspotDelaySum, fallbackDelay)
+            // Check if any reported local incidents (Temple Fest, Accident, Concert, etc.) lie near route points
+            const pts = (r?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude])
+            const matchingIncidents: any[] = []
+            let incidentDelaySum = 0
+
+            if (Array.isArray(incidents)) {
+              incidents.forEach((inc: any) => {
+                if (!inc.active || !inc.lat || !inc.lon) return
+                const isNear = pts.some((pt: any) => {
+                  const dLat = Math.abs(pt[0] - inc.lat)
+                  const dLon = Math.abs(pt[1] - inc.lon)
+                  return dLat < 0.015 && dLon < 0.015 // ~1.5km
+                })
+                if (isNear) {
+                  matchingIncidents.push(inc)
+                  incidentDelaySum += inc.expected_delay_mins || 15
+                }
+              })
+            }
+
+            const finalDelay = Math.max(liveDelayMins + incidentDelaySum, hotspotDelaySum, fallbackDelay)
+            const extraDelayMins = Math.max(0, finalDelay - liveDelayMins)
+            const effectiveTotalTimeSec = travelTimeSec + extraDelayMins * 60
+            const effectiveEtaMins = Math.max(1, Math.round(effectiveTotalTimeSec / 60))
 
             let speedKmh = 48
             if (distKm > 0 && travelTimeSec > 0) {
-              const adjustedTimeSec = travelTimeSec + Math.max(0, finalDelay - liveDelayMins) * 60
-              speedKmh = Math.max(14, Math.round(distKm / (adjustedTimeSec / 3600)))
+              speedKmh = Math.max(14, Math.round(distKm / (effectiveTotalTimeSec / 3600)))
             }
 
             return {
               predictedSpeed: speedKmh,
               delay: finalDelay,
+              effectiveTotalTimeSec,
+              effectiveEtaMins,
               hotspots,
+              reportedIncidents: matchingIncidents,
             }
           })
-        )
+
+        setForecasts(calculatedForecasts)
+
+        // Automatically select the fastest route with the lowest effective travel time + delay
+        if (calculatedForecasts.length > 0) {
+          let minTime = Infinity
+          let bestIdx = 0
+          calculatedForecasts.forEach((fc: any, i: number) => {
+            if (fc.effectiveTotalTimeSec < minTime) {
+              minTime = fc.effectiveTotalTimeSec
+              bestIdx = i
+            }
+          })
+          setSelectedRouteIdx(bestIdx)
+        }
         setLoading(false)
       })
       .catch(() => {
@@ -470,6 +509,57 @@ function RoutesContent() {
       }
     })
 
+    // 3. Render Reported Local Event Incidents (Temple Fest, Accident, Concert, etc.)
+    const reportedIncidents = currentForecast?.reportedIncidents || []
+    reportedIncidents.forEach((inc: any) => {
+      if (inc.lat && inc.lon) {
+        heatPoints.push([inc.lat, inc.lon, 1.0])
+        heatPoints.push([inc.lat + 0.002, inc.lon + 0.002, 0.85])
+        heatPoints.push([inc.lat - 0.002, inc.lon - 0.002, 0.85])
+
+        let emoji = '⚠️'
+        if (inc.category === 'temple_fest') emoji = '🎪'
+        else if (inc.category === 'accident') emoji = '💥'
+        else if (inc.category === 'concert') emoji = '🎸'
+        else if (inc.category === 'construction') emoji = '🚧'
+        else if (inc.category === 'weather_hazard') emoji = '⛈️'
+        else if (inc.category === 'procession') emoji = '🚩'
+
+        const incIcon = L.divIcon({
+          html: `
+            <div style="
+              width: 36px; height: 36px; border-radius: 50%;
+              background: #991b1b; color: white;
+              display: flex; align-items: center; justify-content: center;
+              border: 2.5px solid white; box-shadow: 0 4px 14px rgba(220,38,38,0.6);
+              cursor: pointer; font-size: 18px; position: relative;
+            ">
+              <span style="
+                position: absolute; inset: -3px; border-radius: 50%;
+                border: 2px solid #ef4444; animation: ping 1.2s cubic-bezier(0,0,0.2,1) infinite;
+                opacity: 0.85; pointer-events: none;
+              "></span>
+              <span>${emoji}</span>
+            </div>
+          `,
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+        })
+
+        const marker = L.marker([inc.lat, inc.lon], { icon: incIcon, zIndexOffset: 2000 }).addTo(map)
+        marker.bindPopup(`
+          <div style="font-family: system-ui; min-width: 190px; padding: 2px;">
+            <div style="font-size: 10px; font-weight: 800; color: #dc2626; text-transform: uppercase;">${emoji} REPORTED EVENT DISRUPTION</div>
+            <b style="font-size: 13px; color: #2c2825; display: block; margin-top: 2px;">${inc.title}</b>
+            <div style="color: #b91c1c; font-size: 11px; font-weight: 800; margin-top: 4px;">Expected Delay: +${inc.expected_delay_mins} mins</div>
+            <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">${inc.description || ''}</div>
+          </div>
+        `)
+        markersRef.current.push(marker)
+      }
+    })
+
     // 3. Start & End Origin/Destination Markers
     const selectedRoute = routes[selectedRouteIdx]
     const pts = selectedRoute?.legs?.[0]?.points || []
@@ -585,6 +675,20 @@ function RoutesContent() {
       `/map?fromLat=${fromLat}&fromLon=${fromLon}&toLat=${toLat}&toLon=${toLon}&fromName=${encodeURIComponent(fromName)}&toName=${encodeURIComponent(toName)}&nav=true`
     )
   }
+
+  const recommendedRouteIdx = useMemo(() => {
+    if (!forecasts.length) return 0
+    let minTime = Infinity
+    let bestIdx = 0
+    forecasts.forEach((fc: any, i: number) => {
+      const t = fc?.effectiveTotalTimeSec ?? Infinity
+      if (t < minTime) {
+        minTime = t
+        bestIdx = i
+      }
+    })
+    return bestIdx
+  }, [forecasts])
 
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f5', display: 'flex', flexDirection: 'column' }}>
@@ -722,10 +826,13 @@ function RoutesContent() {
 
               {routes.map((route, idx) => {
                 const summary = route.summary || {}
-                const etaMins = Math.round((summary.travelTimeInSeconds || 0) / 60)
-                const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const fc = forecasts[idx]
+                const etaMins = fc?.effectiveEtaMins || Math.round((summary.travelTimeInSeconds || 0) / 60)
+                const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const isSelected = selectedRouteIdx === idx
+                const isRecommended = idx === recommendedRouteIdx
+                const bestEtaMins = forecasts[recommendedRouteIdx]?.effectiveEtaMins || etaMins
+                const diffMins = etaMins - bestEtaMins
 
                 return (
                   <div
@@ -734,10 +841,18 @@ function RoutesContent() {
                     style={{
                       background: 'white',
                       borderRadius: 18,
-                      border: isSelected ? '2px solid #a67c52' : '1px solid #e8e0d5',
+                      border: isSelected
+                        ? '2px solid #a67c52'
+                        : isRecommended
+                        ? '2px solid #86efac'
+                        : '1px solid #e8e0d5',
                       padding: 20,
                       cursor: 'pointer',
-                      boxShadow: isSelected ? '0 8px 24px rgba(166,124,82,0.12)' : '0 2px 8px rgba(0,0,0,0.02)',
+                      boxShadow: isSelected
+                        ? '0 8px 24px rgba(166,124,82,0.12)'
+                        : isRecommended
+                        ? '0 4px 16px rgba(34,197,94,0.08)'
+                        : '0 2px 8px rgba(0,0,0,0.02)',
                       transition: 'all 0.2s ease',
                       position: 'relative',
                     }}
@@ -750,12 +865,27 @@ function RoutesContent() {
                               fontSize: 11,
                               fontWeight: 800,
                               textTransform: 'uppercase',
-                              color: isSelected ? '#a67c52' : '#9e9189',
+                              color: isRecommended ? '#16a34a' : isSelected ? '#a67c52' : '#9e9189',
                               letterSpacing: '0.05em',
                             }}
                           >
-                            Route {idx + 1} {idx === 0 ? '· Recommended' : '· Alternate'}
+                            Route {idx + 1} {isRecommended ? '· ⭐ Recommended (Fastest)' : diffMins > 0 ? `· Alternate (+${diffMins} min)` : '· Alternate'}
                           </span>
+                          {isRecommended && (
+                            <span
+                              style={{
+                                fontSize: 10,
+                                fontWeight: 800,
+                                background: '#dcfce7',
+                                color: '#166534',
+                                border: '1px solid #bbf7d0',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              FASTEST
+                            </span>
+                          )}
                           {isSelected && (
                             <span
                               style={{
@@ -839,6 +969,44 @@ function RoutesContent() {
                       ) : (
                         <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
                           <CheckCircle size={12} /> Clear route with minimal delay
+                        </div>
+                      )}
+
+                      {/* Active Local Event / Disruption Warning Banner */}
+                      {fc?.reportedIncidents && fc.reportedIncidents.length > 0 && (
+                        <div
+                          style={{
+                            marginTop: 10,
+                            background: '#fef2f2',
+                            border: '1.5px solid #fca5a5',
+                            borderRadius: 12,
+                            padding: '10px 12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 800, color: '#dc2626' }}>
+                            <span>🚨 REPORTED EVENT / DISRUPTION ON THIS ROUTE</span>
+                          </div>
+                          {fc.reportedIncidents.map((inc: any, i: number) => {
+                            let emoji = '⚠️'
+                            if (inc.category === 'temple_fest') emoji = '🎪'
+                            else if (inc.category === 'accident') emoji = '💥'
+                            else if (inc.category === 'concert') emoji = '🎸'
+                            else if (inc.category === 'construction') emoji = '🚧'
+                            else if (inc.category === 'weather_hazard') emoji = '⛈️'
+                            else if (inc.category === 'procession') emoji = '🚩'
+
+                            return (
+                              <div key={i} style={{ marginTop: 6, fontSize: 12 }}>
+                                <div style={{ fontWeight: 800, color: '#991b1b', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span>{emoji}</span>
+                                  <span>{inc.title}</span>
+                                </div>
+                                <div style={{ fontSize: 11, color: '#b91c1c', marginTop: 2, fontWeight: 600 }}>
+                                  +{inc.expected_delay_mins} min delay expected · {inc.description}
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
                       )}
                     </div>
