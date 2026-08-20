@@ -49,17 +49,17 @@ export default function AdminBottlenecksPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/admin"
-              className="flex items-center gap-1 text-xs font-bold text-[#9e9189] hover:text-[#2c2825]"
+              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
             >
               <ArrowLeft className="size-3.5" /> Overview
             </Link>
-            <span className="text-xs text-[#e8e0d5]">/</span>
-            <span className="text-xs font-bold text-[#a67c52]">Bottlenecks Surveillance</span>
+            <span className="text-xs text-slate-300">/</span>
+            <span className="text-xs font-bold text-emerald-700">Bottlenecks Surveillance</span>
           </div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825]">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">
             Junction Bottlenecks & Severity Ranking
           </h1>
-          <p className="mt-0.5 text-xs text-[#9e9189]">
+          <p className="mt-0.5 text-xs text-slate-500">
             Real-time bottleneck surveillance, corridor delays, and predictive congestion rankings
           </p>
         </div>
@@ -67,9 +67,9 @@ export default function AdminBottlenecksPage() {
         <button
           type="button"
           onClick={loadData}
-          className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-xs hover:bg-[#faf8f5] cursor-pointer"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
         >
-          <RefreshCw className={`size-3.5 text-[#a67c52] ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`size-3.5 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -85,7 +85,7 @@ export default function AdminBottlenecksPage() {
 
         {/* Selected Corridor Location Intel Panel */}
         <div className="space-y-3">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#2c2825]">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
             Selected Corridor Intelligence
           </h3>
           <LocationIntelPanel

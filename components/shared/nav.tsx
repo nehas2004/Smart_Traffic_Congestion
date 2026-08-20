@@ -1,7 +1,10 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Waypoints, Map, BarChart2, ShieldAlert } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Waypoints, Map, BarChart2, ShieldAlert, LogOut, User } from 'lucide-react'
+import { getStoredUser, signOutUser, FlowcastUser } from '@/lib/auth'
 
 const links = [
   { href: '/routes',    label: 'Route Options', icon: Waypoints },
@@ -11,6 +14,27 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState<FlowcastUser | null>(null)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  useEffect(() => {
+    const currentUser = getStoredUser()
+    setUser(currentUser)
+  }, [pathname])
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true)
+    try {
+      await signOutUser()
+      router.push('/')
+    } catch (_) {
+      router.push('/')
+    } finally {
+      setIsLoggingOut(false)
+    }
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -25,7 +49,7 @@ export function Nav() {
         </Link>
 
         {/* Center & Right Navigation Links */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
           <nav className="flex items-center gap-1">
             {links.map(({ href, label, icon: Icon }) => {
               const active = pathname === href
@@ -33,7 +57,7 @@ export function Nav() {
                 <Link
                   key={href}
                   href={href}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                     active
                       ? 'bg-indigo-50 text-indigo-700 shadow-xs font-bold'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
@@ -46,47 +70,38 @@ export function Nav() {
             })}
           </nav>
 
-          {/* Separator */}
-          <div className="hidden sm:block w-px h-5 bg-slate-200" />
+          <div className="h-5 w-px bg-slate-200 mx-1 hidden sm:block" />
 
-          {/* Public Info Group */}
-          <div className="hidden lg:flex items-center gap-1 bg-slate-100/80 border border-slate-200/70 rounded-xl p-1">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider px-2">
-              Public
-            </span>
-            {[
-              { href: '/public', label: 'Home' },
-              { href: '/public/traffic', label: 'Traffic' },
-              { href: '/public/forecast', label: 'Forecast' },
-            ].map(({ href, label }) => {
-              const active = pathname === href
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
-                    active
-                      ? 'bg-white text-indigo-700 shadow-xs font-bold'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
-
-          {/* Separator */}
-          <div className="hidden sm:block w-px h-5 bg-slate-200" />
+          {/* User Info Pill (if commuter is logged in) */}
+          {user && (
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 text-xs font-medium">
+              <div className="size-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold uppercase">
+                {user.name ? user.name[0] : <User size={10} />}
+              </div>
+              <span className="max-w-[100px] truncate">{user.name || user.email.split('@')[0]}</span>
+            </div>
+          )}
 
           {/* City Planner Portal Button */}
           <Link
             href="/admin"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/80 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/80 transition-all"
           >
             <ShieldAlert size={14} className="text-indigo-600" />
-            <span className="hidden sm:inline">Planner Portal</span>
+            <span className="hidden sm:inline">Planner</span>
           </Link>
+
+          {/* Commuter Logout Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            title="Log out of commuter account"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-rose-600 bg-slate-100/80 hover:bg-rose-50 border border-slate-200/80 hover:border-rose-200 transition-all cursor-pointer disabled:opacity-50"
+          >
+            <LogOut size={13} className="text-slate-500 hover:text-rose-600 transition-colors" />
+            <span className="hidden xs:inline">Logout</span>
+          </button>
         </div>
       </div>
     </header>

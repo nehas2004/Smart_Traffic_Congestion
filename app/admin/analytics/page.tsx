@@ -13,24 +13,24 @@ export default function AdminAnalyticsPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/admin"
-              className="flex items-center gap-1 text-xs font-bold text-[#9e9189] hover:text-[#2c2825]"
+              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
             >
               <ArrowLeft className="size-3.5" /> Overview
             </Link>
-            <span className="text-xs text-[#e8e0d5]">/</span>
-            <span className="text-xs font-bold text-[#a67c52]">ML Data Analytics & Models</span>
+            <span className="text-xs text-slate-300">/</span>
+            <span className="text-xs font-bold text-emerald-700">ML Data Analytics & Models</span>
           </div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825]">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">
             Predictive Model Intelligence & Validation
           </h1>
-          <p className="mt-0.5 text-xs text-[#9e9189]">
+          <p className="mt-0.5 text-xs text-slate-500">
             Linear Regression vs Gradient Boosting vs LSTM accuracy comparison and simulation
           </p>
         </div>
 
         <Link
           href="/admin/traffic"
-          className="flex items-center gap-1.5 rounded-xl bg-[#2c2825] px-4 py-2 text-xs font-bold text-[#faf8f5] shadow-sm hover:bg-[#1e1b18]"
+          className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-700 transition-all cursor-pointer"
         >
           View Congestion Map
         </Link>

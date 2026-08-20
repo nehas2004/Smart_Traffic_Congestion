@@ -208,23 +208,23 @@ export function AdminSidebar() {
   return (
     <>
       {/* ── Mobile Top Header Bar ── */}
-      <div className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-[#e8e0d5] bg-[#faf8f5]/95 px-4 backdrop-blur-md lg:hidden">
+      <div className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-md lg:hidden">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setIsMobileOpen(true)}
-            className="flex size-10 items-center justify-center rounded-xl border border-[#e8e0d5] bg-white text-[#2c2825] shadow-xs transition hover:bg-[#f5f2ee]"
+            className="flex size-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50"
             aria-label="Open Navigation Sidebar"
           >
             <Menu className="size-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#2c2825] shadow-xs">
-              <ShieldAlert className="size-4 text-[#c8a97e]" />
+            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
+              <ShieldAlert className="size-4 text-white" />
             </div>
             <div>
-              <span className="font-extrabold text-sm tracking-tight text-[#2c2825]">Flowcast</span>
-              <span className="ml-1.5 rounded-md bg-[#2c2825] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#c8a97e]">
+              <span className="font-extrabold text-sm tracking-tight text-slate-900">Flowcast</span>
+              <span className="ml-1.5 rounded-md bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
                 Planner
               </span>
             </div>
@@ -235,7 +235,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs"
+            className="flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
             title="Report Congestion / Event"
           >
             <Flame className="size-3 fill-white" />
@@ -244,10 +244,10 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-600/30 bg-blue-50/90 px-2.5 py-1 text-xs font-bold text-blue-950"
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-900"
             title="Change City / Sector"
           >
-            <Building2 className="size-3 text-blue-600" />
+            <Building2 className="size-3 text-emerald-600" />
             <span className="font-extrabold text-[11px] truncate max-w-[90px]">
               {activeCityName}
             </span>
@@ -259,38 +259,38 @@ export function AdminSidebar() {
       {isMobileOpen && (
         <div
           onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs transition-opacity lg:hidden"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs transition-opacity lg:hidden"
         />
       )}
 
       {/* ── Collapsible Sidebar Container ── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#e8e0d5] bg-[#faf8f5] transition-all duration-300 ease-in-out lg:static lg:z-30 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white transition-all duration-300 ease-in-out lg:static lg:z-30 ${
           isMobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         } ${
           isCollapsed ? 'lg:w-[72px]' : 'lg:w-[272px]'
         } w-[272px]`}
       >
         {/* ── Sidebar Header ── */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8e0d5] px-3.5">
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-3.5">
           <Link
             href="/admin"
-            className="flex items-center gap-2.5 text-inherit no-underline overflow-hidden transition-opacity hover:opacity-90"
+            className="flex items-center gap-2.5 text-inherit no-underline overflow-hidden transition-opacity hover:opacity-90 group"
             title="Flowcast - 10km Grid Traffic Intelligence"
           >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] shadow-xs">
-              <ShieldAlert className="size-4 text-[#c8a97e]" />
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+              <ShieldAlert className="size-4.5 text-white" />
             </div>
 
             {(!isCollapsed || isMobileOpen) && (
               <div className="flex flex-col min-w-0 transition-opacity duration-200">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-tight text-[#2c2825] truncate">Flowcast</span>
-                  <span className="shrink-0 rounded-full bg-[#2c2825] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#c8a97e]">
+                  <span className="font-extrabold text-base tracking-tight text-slate-900 truncate">Flowcast</span>
+                  <span className="shrink-0 rounded-full bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
                     Planner
                   </span>
                 </div>
-                <p className="text-[10px] text-[#9e9189] leading-tight truncate">
+                <p className="text-[10px] text-slate-500 leading-tight truncate">
                   10km Grid Traffic Intelligence
                 </p>
               </div>
@@ -301,14 +301,14 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={toggleCollapse}
-            className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] shadow-2xs transition hover:bg-[#f5f2ee] hover:text-[#2c2825]"
+            className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-2xs transition hover:bg-slate-50 hover:text-slate-900"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? (
-              <PanelLeftOpen className="size-4 text-[#9e9189]" />
+              <PanelLeftOpen className="size-4 text-slate-400" />
             ) : (
-              <PanelLeftClose className="size-4 text-[#9e9189]" />
+              <PanelLeftClose className="size-4 text-slate-400" />
             )}
           </button>
 
@@ -316,7 +316,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsMobileOpen(false)}
-            className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] hover:bg-[#f5f2ee]"
+            className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
             aria-label="Close Sidebar"
           >
             <X className="size-4" />
@@ -329,35 +329,35 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="group flex w-full items-center justify-between rounded-xl border border-blue-600/25 bg-blue-50/80 p-2.5 text-left transition-all hover:bg-blue-100/80 hover:border-blue-600/40 shadow-2xs"
+              className="group flex w-full items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 text-left transition-all hover:bg-emerald-100/70 hover:border-emerald-300 shadow-2xs cursor-pointer"
               title="Click to change City / 10km grid surveillance sector"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs">
+                <div className="flex size-7.5 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
                   <Building2 className="size-4" />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 leading-none">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 leading-none">
                       Active City Sector
                     </span>
-                    <span className="size-1.5 rounded-full bg-blue-600 animate-pulse" />
+                    <span className="size-1.5 rounded-full bg-emerald-600 animate-pulse" />
                   </div>
-                  <span className="block text-xs font-black text-blue-950 truncate mt-0.5">
+                  <span className="block text-xs font-black text-emerald-950 truncate mt-0.5">
                     {activeCityName}
                   </span>
-                  <span className="block text-[10px] font-mono text-blue-800/80 truncate">
+                  <span className="block text-[10px] font-mono text-emerald-800/80 truncate">
                     {activeSector ? `${activeSector.lat.toFixed(4)}°, ${activeSector.lon.toFixed(4)}°` : '10.0033°, 76.2996°'}
                   </span>
                 </div>
               </div>
-              <ChevronDown className="size-3.5 text-blue-700 shrink-0 ml-1 transition group-hover:translate-y-0.5" />
+              <ChevronDown className="size-3.5 text-emerald-700 shrink-0 ml-1 transition group-hover:translate-y-0.5" />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex size-10 w-full items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-700 shadow-2xs transition hover:bg-blue-100"
+              className="flex size-10 w-full items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-2xs transition hover:bg-emerald-100 cursor-pointer"
               title={`Active City: ${activeCityName} (${activeSector?.lat.toFixed(4)}°, ${activeSector?.lon.toFixed(4)}°) - Click to change`}
             >
               <Building2 className="size-4" />
@@ -369,7 +369,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-amber-600/15 transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.01]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:scale-[1.01] cursor-pointer"
               title="Report Temple Fest, Accident, Concert, or Road Hazard"
             >
               <Flame className="size-3.5 fill-white" />
@@ -379,7 +379,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="flex size-10 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs transition hover:scale-105"
+              className="flex size-10 w-full items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs transition hover:scale-105 hover:bg-emerald-700 cursor-pointer"
               title="Report Congestion / Event"
             >
               <Flame className="size-4 fill-white" />
@@ -391,7 +391,7 @@ export function AdminSidebar() {
         <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
           <div className="mb-1.5 px-2">
             {(!isCollapsed || isMobileOpen) && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#9e9189]">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
                 Operations & Analytics
               </span>
             )}
@@ -407,15 +407,15 @@ export function AdminSidebar() {
                   isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'px-3 text-sm'
                 } ${
                   active
-                    ? 'bg-[#2c2825] text-[#faf8f5] shadow-xs font-semibold'
-                    : 'text-[#6b625b] hover:bg-[#ede8df] hover:text-[#2c2825]'
+                    ? 'bg-emerald-50 text-emerald-800 shadow-xs font-bold'
+                    : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900'
                 }`}
                 title={isCollapsed && !isMobileOpen ? label : undefined}
               >
                 <Icon
                   className={`shrink-0 transition-transform group-hover:scale-105 ${
                     isCollapsed && !isMobileOpen ? 'size-5' : 'size-4.5'
-                  } ${active ? 'text-[#c8a97e]' : 'text-[#9e9189] group-hover:text-[#2c2825]'}`}
+                  } ${active ? 'text-emerald-600' : 'text-slate-400 group-hover:text-slate-700'}`}
                 />
 
                 {(!isCollapsed || isMobileOpen) && (
@@ -425,7 +425,7 @@ export function AdminSidebar() {
                 {/* Active Indicator Accent */}
                 {active && (
                   <span
-                    className={`absolute rounded-full bg-[#c8a97e] ${
+                    className={`absolute rounded-full bg-emerald-600 ${
                       isCollapsed && !isMobileOpen
                         ? 'left-1 top-2 bottom-2 w-1'
                         : 'right-2.5 size-1.5'
@@ -438,9 +438,9 @@ export function AdminSidebar() {
         </nav>
 
         {/* ── Telemetry Live Status ── */}
-        <div className="px-3 py-2 border-t border-[#e8e0d5]/80 bg-[#f5f2ee]/50">
+        <div className="px-3 py-2 border-t border-slate-200/80 bg-slate-50/70">
           <div
-            className={`flex items-center gap-2 text-xs text-[#2c2825] ${
+            className={`flex items-center gap-2 text-xs text-slate-800 ${
               isCollapsed && !isMobileOpen ? 'justify-center' : 'justify-between px-1'
             }`}
           >
@@ -450,11 +450,11 @@ export function AdminSidebar() {
                 <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
               </span>
               {(!isCollapsed || isMobileOpen) && (
-                <span className="text-[11px] font-semibold text-[#6b625b]">10km Grid Online</span>
+                <span className="text-[11px] font-semibold text-slate-600">10km Grid Online</span>
               )}
             </div>
             {(!isCollapsed || isMobileOpen) && (
-              <span className="font-mono text-[10px] text-[#9e9189] font-medium">
+              <span className="font-mono text-[10px] text-slate-500 font-medium">
                 {timeStr || 'LIVE'}
               </span>
             )}
@@ -462,62 +462,62 @@ export function AdminSidebar() {
         </div>
 
         {/* ── ChatGPT-Inspired User Profile & Logout Section ── */}
-        <div ref={profileRef} className="relative shrink-0 border-t border-[#e8e0d5] bg-white p-2">
+        <div ref={profileRef} className="relative shrink-0 border-t border-slate-200 bg-white p-2">
           {/* Profile Card Trigger */}
           {(!isCollapsed || isMobileOpen) ? (
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-[#f5f2ee] focus:outline-none"
+              className="flex w-full items-center justify-between gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-slate-50 focus:outline-none cursor-pointer"
               title="Planner Account & Logout"
             >
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] border border-[#443e39] text-xs font-black text-[#c8a97e] shadow-2xs">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xs font-black text-white shadow-xs">
                   {initials}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs font-black text-[#2c2825] truncate leading-tight">
+                  <p className="text-xs font-black text-slate-900 truncate leading-tight">
                     {plannerName}
                   </p>
-                  <p className="text-[10px] text-[#9e9189] truncate">
+                  <p className="text-[10px] text-slate-500 truncate">
                     {plannerEmail}
                   </p>
                 </div>
               </div>
-              <MoreVertical className="size-4 text-[#9e9189] shrink-0" />
+              <MoreVertical className="size-4 text-slate-400 shrink-0" />
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="flex size-10 w-full items-center justify-center rounded-xl bg-[#2c2825] border border-[#443e39] text-xs font-black text-[#c8a97e] shadow-2xs hover:opacity-90"
+              className="flex size-10 w-full items-center justify-center rounded-xl bg-emerald-600 text-xs font-black text-white shadow-xs hover:opacity-90 cursor-pointer"
               title={`${plannerName} (${plannerEmail}) - Click for Account & Logout`}
             >
               {initials}
             </button>
           )}
 
-          {/* ChatGPT-Style Popover Menu */}
+          {/* Popover Menu */}
           {isProfileMenuOpen && (
             <div
-              className={`absolute bottom-full mb-2 z-50 rounded-2xl border border-[#e8e0d5] bg-white p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-150 ${
+              className={`absolute bottom-full mb-2 z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-150 ${
                 isCollapsed && !isMobileOpen ? 'left-2 w-64' : 'left-2 right-2'
               }`}
             >
               {/* Header inside popover */}
-              <div className="border-b border-[#f0ece7] p-2.5">
+              <div className="border-b border-slate-100 p-2.5">
                 <div className="flex items-center gap-2.5">
-                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] text-xs font-black text-[#c8a97e]">
+                  <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xs font-black text-white">
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-black text-[#2c2825] truncate">
+                    <p className="text-xs font-black text-slate-900 truncate">
                       {plannerName}
                     </p>
-                    <p className="text-[10px] text-[#9e9189] truncate">
+                    <p className="text-[10px] text-slate-500 truncate">
                       {plannerEmail}
                     </p>
-                    <span className="mt-1 inline-block rounded-md bg-[#faf8f5] border border-[#e8e0d5] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#a67c52]">
+                    <span className="mt-1 inline-block rounded-md bg-emerald-50 border border-emerald-200/70 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
                       City Planner · Admin
                     </span>
                   </div>
@@ -526,12 +526,12 @@ export function AdminSidebar() {
 
               {/* Active Jurisdiction Info */}
               <div className="p-2">
-                <div className="rounded-xl bg-blue-50/70 border border-blue-600/20 p-2.5">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-blue-900 mb-1">
+                <div className="rounded-xl bg-emerald-50/70 border border-emerald-200 p-2.5">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-emerald-900 mb-1">
                     <span>Active Jurisdiction:</span>
-                    <span className="font-mono text-[10px] text-blue-700">10km Grid</span>
+                    <span className="font-mono text-[10px] text-emerald-700">10km Grid</span>
                   </div>
-                  <p className="text-xs font-black text-blue-950 truncate">
+                  <p className="text-xs font-black text-emerald-950 truncate">
                     {activeCityName}
                   </p>
                   <button
@@ -540,7 +540,7 @@ export function AdminSidebar() {
                       setIsProfileMenuOpen(false)
                       setIsModalOpen(true)
                     }}
-                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-blue-600 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700"
+                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-emerald-600 py-1.5 text-[11px] font-bold text-white transition hover:bg-emerald-700 cursor-pointer"
                   >
                     <Building2 className="size-3" />
                     Switch Operational City
@@ -548,14 +548,14 @@ export function AdminSidebar() {
                 </div>
               </div>
 
-              <div className="border-t border-[#f0ece7] my-1" />
+              <div className="border-t border-slate-100 my-1" />
 
               {/* Single Official Logout Option */}
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left text-xs font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+                className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left text-xs font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
               >
                 <LogOut className="size-4 text-rose-500" />
                 <span>Sign Out to Login Page</span>

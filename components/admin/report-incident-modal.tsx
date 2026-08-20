@@ -173,20 +173,20 @@ export function ReportIncidentModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-[#e8e0d5] bg-[#faf8f5] shadow-2xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
         {/* Modal Header */}
-        <div className="border-b border-[#e8e0d5] bg-white p-5">
+        <div className="border-b border-slate-100 bg-slate-50/70 p-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-sm">
+              <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
                 <AlertTriangle className="size-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black tracking-tight text-[#2c2825]">
+                <h2 className="text-lg font-black tracking-tight text-slate-900">
                   Report Congestion / Local Event Disruption
                 </h2>
-                <p className="text-xs text-[#9e9189]">
+                <p className="text-xs text-slate-500">
                   Broadcasts heat blobs to City Planner heatmap & Commuters route views
                 </p>
               </div>
@@ -195,7 +195,7 @@ export function ReportIncidentModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-full p-2 text-[#9e9189] hover:bg-[#faf8f5] hover:text-[#2c2825]"
+              className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
             >
               <X className="size-5" />
             </button>
@@ -205,7 +205,7 @@ export function ReportIncidentModal({
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[78vh] overflow-y-auto">
           {error && (
-            <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">
               {error}
             </div>
           )}
@@ -219,7 +219,7 @@ export function ReportIncidentModal({
 
           {/* 1. Category Selector */}
           <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-2">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2">
               Disruption / Event Type
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -230,10 +230,10 @@ export function ReportIncidentModal({
                     key={cat.id}
                     type="button"
                     onClick={() => handleCategorySelect(cat)}
-                    className={`flex items-center gap-2 rounded-2xl p-2.5 text-left border transition-all ${
+                    className={`flex items-center gap-2 rounded-2xl p-2.5 text-left border transition-all cursor-pointer ${
                       isSelected
-                        ? 'border-[#2c2825] bg-[#2c2825] text-white shadow-sm'
-                        : 'border-[#e8e0d5] bg-white text-[#2c2825] hover:border-amber-400 hover:bg-[#faf8f5]'
+                        ? 'border-emerald-600 bg-emerald-600 text-white shadow-sm shadow-emerald-500/20'
+                        : 'border-slate-200 bg-white text-slate-800 hover:border-emerald-300 hover:bg-slate-50'
                     }`}
                   >
                     <span className="text-lg">{cat.icon}</span>
@@ -246,7 +246,7 @@ export function ReportIncidentModal({
 
           {/* 2. Incident Title */}
           <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-1.5">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
               Incident Title / Event Name
             </label>
             <input
@@ -255,33 +255,33 @@ export function ReportIncidentModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Annual Temple Festival Procession (Utsavam)"
-              className="h-10 w-full rounded-xl border border-[#e8e0d5] bg-white px-3.5 text-xs font-bold text-[#2c2825] focus:border-[#2563eb] focus:outline-none shadow-sm"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none shadow-xs"
             />
           </div>
 
           {/* 3. Location Coordinate Picker / Place Search */}
           <div className="space-y-2">
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189]">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400">
               Location & Exact Coordinates
             </label>
 
             {/* Place Search */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-3 size-4 text-[#9e9189]" />
+              <Search className="absolute left-3.5 top-3 size-4 text-slate-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search landmark / street to auto-fill coordinates..."
-                className="h-10 w-full rounded-xl border border-[#e8e0d5] bg-white pl-10 pr-3.5 text-xs font-semibold text-[#2c2825] placeholder:text-[#9e9189] focus:border-[#2563eb] focus:outline-none shadow-sm"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-3.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:outline-none shadow-xs"
               />
               {isSearching && (
-                <RefreshCw className="absolute right-3.5 top-3 size-4 animate-spin text-blue-600" />
+                <RefreshCw className="absolute right-3.5 top-3 size-4 animate-spin text-emerald-600" />
               )}
 
               {/* Suggestions Dropdown */}
               {suggestions.length > 0 && (
-                <div className="absolute top-11 left-0 right-0 z-30 divide-y divide-[#f0ece7] rounded-xl border border-[#e8e0d5] bg-white p-1 shadow-xl">
+                <div className="absolute top-11 left-0 right-0 z-30 divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
                   {suggestions.map((item, idx) => {
                     const title = item.poi?.name || item.address?.freeformAddress || 'Place'
                     return (
@@ -289,13 +289,13 @@ export function ReportIncidentModal({
                         key={idx}
                         type="button"
                         onClick={() => handleSelectSuggestion(item)}
-                        className="flex w-full items-center justify-between p-2 text-left text-xs font-bold text-[#2c2825] hover:bg-blue-50 rounded-lg"
+                        className="flex w-full items-center justify-between p-2 text-left text-xs font-bold text-slate-900 hover:bg-emerald-50 rounded-lg cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <MapPin className="size-3.5 text-blue-600 shrink-0" />
+                          <MapPin className="size-3.5 text-emerald-600 shrink-0" />
                           <span className="truncate">{title}</span>
                         </div>
-                        <span className="font-mono text-[10px] text-[#9e9189]">
+                        <span className="font-mono text-[10px] text-slate-400">
                           {item.position.lat.toFixed(4)}, {item.position.lon.toFixed(4)}
                         </span>
                       </button>
@@ -308,23 +308,23 @@ export function ReportIncidentModal({
             {/* Direct Lat/Lon Inputs */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <span className="block text-[10px] font-bold text-[#9e9189] mb-1">Latitude (°N)</span>
+                <span className="block text-[10px] font-bold text-slate-400 mb-1">Latitude (°N)</span>
                 <input
                   type="text"
                   required
                   value={lat}
                   onChange={(e) => setLat(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-[#e8e0d5] bg-white px-3 font-mono text-xs font-bold text-[#2c2825] focus:border-blue-600 focus:outline-none"
+                  className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 font-mono text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none"
                 />
               </div>
               <div>
-                <span className="block text-[10px] font-bold text-[#9e9189] mb-1">Longitude (°E)</span>
+                <span className="block text-[10px] font-bold text-slate-400 mb-1">Longitude (°E)</span>
                 <input
                   type="text"
                   required
                   value={lon}
                   onChange={(e) => setLon(e.target.value)}
-                  className="h-9 w-full rounded-xl border border-[#e8e0d5] bg-white px-3 font-mono text-xs font-bold text-[#2c2825] focus:border-blue-600 focus:outline-none"
+                  className="h-9 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 font-mono text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none"
                 />
               </div>
             </div>
@@ -333,13 +333,13 @@ export function ReportIncidentModal({
           {/* 4. Severity & Estimated Impact */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
                 Severity Level
               </label>
               <select
                 value={severity}
                 onChange={(e) => setSeverity(e.target.value as SeverityLevel)}
-                className="h-10 w-full rounded-xl border border-[#e8e0d5] bg-white px-3 text-xs font-extrabold text-[#2c2825] focus:outline-none"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-xs font-extrabold text-slate-900 focus:border-emerald-600 focus:outline-none cursor-pointer"
               >
                 <option value="severe">🔴 Severe (Gridlock)</option>
                 <option value="heavy">🟠 Heavy Delay</option>
@@ -349,7 +349,7 @@ export function ReportIncidentModal({
             </div>
 
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
                 Added Delay (Mins)
               </label>
               <input
@@ -358,12 +358,12 @@ export function ReportIncidentModal({
                 max="120"
                 value={delayMins}
                 onChange={(e) => setDelayMins(parseInt(e.target.value) || 10)}
-                className="h-10 w-full rounded-xl border border-[#e8e0d5] bg-white px-3.5 text-xs font-bold text-[#2c2825] focus:outline-none font-mono"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none font-mono"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-1.5">
+              <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
                 Duration (Hours)
               </label>
               <input
@@ -372,14 +372,14 @@ export function ReportIncidentModal({
                 max="72"
                 value={durationHours}
                 onChange={(e) => setDurationHours(parseInt(e.target.value) || 2)}
-                className="h-10 w-full rounded-xl border border-[#e8e0d5] bg-white px-3.5 text-xs font-bold text-[#2c2825] focus:outline-none font-mono"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 text-xs font-bold text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none font-mono"
               />
             </div>
           </div>
 
           {/* 5. Description / Mitigation Directive */}
           <div>
-            <label className="block text-xs font-extrabold uppercase tracking-wider text-[#9e9189] mb-1.5">
+            <label className="block text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-1.5">
               Description & Advisory Notes
             </label>
             <textarea
@@ -387,7 +387,7 @@ export function ReportIncidentModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide context (e.g. Temple procession moving from East Gate, divert via outer bypass)..."
-              className="w-full rounded-xl border border-[#e8e0d5] bg-white p-3 text-xs font-medium text-[#2c2825] focus:border-[#2563eb] focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs font-medium text-slate-900 focus:border-emerald-600 focus:bg-white focus:outline-none"
             />
           </div>
 
@@ -396,14 +396,14 @@ export function ReportIncidentModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-[#e8e0d5] bg-white px-4 py-2.5 text-xs font-bold text-[#6b625b] hover:bg-[#faf8f5]"
+              className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting || success}
-              className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-amber-600/30 hover:bg-amber-700 transition-all disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-md shadow-emerald-500/20 hover:bg-emerald-700 transition-all disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <RefreshCw className="size-4 animate-spin" />

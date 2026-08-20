@@ -65,7 +65,7 @@ export interface TrafficBottleneck {
   severity: SeverityLevel
   avg_delay_mins: number
   trend_percent: number
-  confidence: null
+  confidence: number | null
   congestion_unit: 'tti_ratio'
   current_congestion: number
   predicted_congestion: number
@@ -139,7 +139,7 @@ function isBottlenecks(value: unknown): value is TrafficBottleneck[] {
         typeof item.corridor_name === 'string' &&
         typeof item.avg_delay_mins === 'number' &&
         typeof item.trend_percent === 'number' &&
-        item.confidence === null &&
+        (item.confidence === null || typeof item.confidence === 'number') &&
         item.congestion_unit === 'tti_ratio' &&
         typeof item.predicted_congestion === 'number' &&
         (item.forecast_horizon === '1h' ||
@@ -225,7 +225,7 @@ export const MOCK_CORRIDORS: CurrentTrafficReading[] = [
   },
 ]
 
-export const MOCK_BOTTLENECKS: TrafficBottleneck[] = [
+export const MOCK_BOTTLENECKS: (TrafficBottleneck & BottleneckItem)[] = [
   {
     id: 'bn-01',
     corridor_id: 'corr-01',
@@ -235,7 +235,7 @@ export const MOCK_BOTTLENECKS: TrafficBottleneck[] = [
     severity: 'severe',
     avg_delay_mins: 24.5,
     trend_percent: 14,
-    confidence: null,
+    confidence: 0.94,
     congestion_unit: 'tti_ratio',
     current_congestion: 1.42,
     predicted_congestion: 1.57,
@@ -250,7 +250,7 @@ export const MOCK_BOTTLENECKS: TrafficBottleneck[] = [
     severity: 'heavy',
     avg_delay_mins: 17.2,
     trend_percent: 6,
-    confidence: null,
+    confidence: 0.88,
     congestion_unit: 'tti_ratio',
     current_congestion: 1.31,
     predicted_congestion: 1.39,
@@ -368,69 +368,59 @@ export const MOCK_RECOMMENDATIONS: TrafficRecommendation[] = [
     corridor_name: 'Market Feeder & College Road',
     created_at: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
     priority: 'low',
-    title: 'On-Demand Traffic Marshal Dispatch',
+    title: 'Traffic Warden Deployment for Off-Peak Loading',
     description:
-      'Deploy 2 field officers to clear illegal curb parking during afternoon school bell discharge.',
+      'Station 2 wardens near vegetable wholesale entry to prevent double parking during morning deliveries.',
     action_type: 'incident_dispatch',
     expected_delay_reduction_mins: 4.2,
-    confidence: 0.85,
-    current_congestion: 45,
-    predicted_congestion: 58,
+    confidence: 0.82,
+    current_congestion: 48,
+    predicted_congestion: 54,
     severity: 'moderate',
   },
 ]
 
-// In-memory or session persistent decisions
-let localDecisions: DecisionRecord[] = [
+export const MOCK_DECISIONS: DecisionRecord[] = [
   {
-    id: 'dec-1001',
-    recommendation_id: 'rec-arch-00',
+    id: 'dec-101',
+    recommendation_id: 'rec-01',
     corridor_id: 'corr-01',
     corridor_name: 'MC Road Junction (Kothamangalam)',
     action: 'accept',
-    operator: 'Arshad (Admin)',
+    operator: 'Chief Traffic Engineer K. Suresh',
     timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    reason_or_notes: 'Applied standard morning green-wave signal timing offset.',
-    modified_parameters: { custom_timing_seconds: 25 },
+    reason_or_notes: 'Approved adaptive split extension due to morning temple festival traffic.',
   },
   {
-    id: 'dec-1002',
-    recommendation_id: 'rec-arch-01',
+    id: 'dec-102',
+    recommendation_id: 'rec-02',
     corridor_id: 'corr-02',
     corridor_name: 'Aluva-Munnar Highway (NH 85 Central)',
-    action: 'modify',
-    operator: 'Arshad (Admin)',
-    timestamp: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    reason_or_notes:
-      'Adjusted diversion quota from 35% down to 20% due to narrow bypass feeder bridge.',
-    modified_parameters: { reroute_percentage: 20 },
-  },
-  {
-    id: 'dec-1003',
-    recommendation_id: 'rec-arch-02',
-    corridor_id: 'corr-04',
-    corridor_name: 'Bypass Bypass Ring North',
     action: 'reject',
-    operator: 'Arshad (Admin)',
+    operator: 'Operator Ananya Nair',
     timestamp: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
     reason_or_notes:
       'Road surface maintenance underway on northern shoulder; diversion rejected.',
   },
 ]
 
+let localDecisions: DecisionRecord[] = [...MOCK_DECISIONS]
+
 // ==========================================
 // SHARED API CLIENT CONSUMER FUNCTIONS
 // ==========================================
 
-function getStoredSectorQuery(sector?: { lat: number; lon: number; name: string }) {
+function getStoredSectorQuery(sector?: { lat: number; lon: number; name?: string; cityName?: string }) {
   if (sector) {
-    return `lat=${sector.lat}&lon=${sector.lon}&city=${encodeURIComponent(sector.name)}`
+    const cityName = sector.name || sector.cityName || 'Kothamangalam'
+    return `lat=${sector.lat}&lon=${sector.lon}&city=${encodeURIComponent(cityName)}`
   }
   try {
     const s = localStorage.getItem('planner_active_city')
     if (s) {
       const parsed = JSON.parse(s)
-      return `lat=${parsed.lat}&lon=${parsed.lon}&city=${encodeURIComponent(parsed.name)}`
+      const cName = parsed.name || parsed.cityName || 'Kothamangalam'
+      return `lat=${parsed.lat}&lon=${parsed.lon}&city=${encodeURIComponent(cName)}`
     }
   } catch (_) {}
   return `lat=10.0601&lon=76.6214&city=Kothamangalam`
@@ -439,7 +429,8 @@ function getStoredSectorQuery(sector?: { lat: number; lon: number; name: string 
 export async function fetchCurrentTraffic(sector?: {
   lat: number
   lon: number
-  name: string
+  name?: string
+  cityName?: string
 }): Promise<SharedTrafficData[]> {
   try {
     const query = getStoredSectorQuery(sector)
@@ -457,7 +448,7 @@ export async function fetchCurrentTraffic(sector?: {
 
 export async function fetchCorridorDetails(
   id: string,
-  sector?: { lat: number; lon: number; name: string }
+  sector?: { lat: number; lon: number; name?: string; cityName?: string }
 ): Promise<CorridorDetail | undefined> {
   try {
     const query = getStoredSectorQuery(sector)
@@ -503,7 +494,8 @@ export async function fetchTrafficForecast(
 export async function fetchBottlenecks(sector?: {
   lat: number
   lon: number
-  name: string
+  name?: string
+  cityName?: string
 }): Promise<BottleneckItem[]> {
   try {
     const query = getStoredSectorQuery(sector)
@@ -536,7 +528,8 @@ export async function fetchEventImpact(eventId: string): Promise<EventImpact | u
 export async function fetchRecommendations(sector?: {
   lat: number
   lon: number
-  name: string
+  name?: string
+  cityName?: string
 }): Promise<TrafficRecommendation[]> {
   try {
     const query = getStoredSectorQuery(sector)

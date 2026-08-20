@@ -209,25 +209,25 @@ export function SectorSelectorModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-[#e8e0d5] bg-[#faf8f5] shadow-2xl">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl">
         {/* Modal Header */}
-        <div className="border-b border-[#e8e0d5] bg-white p-6">
+        <div className="border-b border-slate-100 bg-slate-50/70 p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3.5">
-              <div className="flex size-11 items-center justify-center rounded-2xl bg-[#2c2825] text-[#c8a97e] shadow-sm">
-                <Building2 className="size-5.5" />
+              <div className="flex size-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
+                <Building2 className="size-5.5 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-black tracking-tight text-[#2c2825]">
+                  <h2 className="text-xl font-black tracking-tight text-slate-900">
                     Select Operational City & Sector
                   </h2>
-                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-blue-900">
+                  <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-900">
                     10km Grid
                   </span>
                 </div>
-                <p className="mt-0.5 text-xs text-[#9e9189]">
+                <p className="mt-0.5 text-xs text-slate-500">
                   Choose your target city or enter GPS coordinates to initialize live congestion telemetry.
                 </p>
               </div>
@@ -237,7 +237,7 @@ export function SectorSelectorModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full p-2 text-[#9e9189] transition hover:bg-[#faf8f5] hover:text-[#2c2825]"
+                className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
                 aria-label="Close"
               >
                 <X className="size-5" />
@@ -249,42 +249,42 @@ export function SectorSelectorModal({
         {/* Modal Body */}
         <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           {/* Active Grid Banner */}
-          <div className="flex items-center justify-between rounded-2xl border border-blue-600/25 bg-blue-50/80 p-3.5 text-xs">
-            <div className="flex items-center gap-2.5 text-blue-950 font-semibold">
-              <Radio className="size-4 text-blue-600 animate-pulse" />
+          <div className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3.5 text-xs">
+            <div className="flex items-center gap-2.5 text-emerald-950 font-semibold">
+              <Radio className="size-4 text-emerald-600 animate-pulse" />
               <span>
                 Operations Area: <strong>10 km Radius Telemetry Grid</strong>
               </span>
             </div>
-            <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-blue-800 bg-blue-100/90 px-2.5 py-1 rounded-full">
-              <Globe2 className="size-3 text-blue-700" />
+            <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-emerald-800 bg-emerald-100/90 px-2.5 py-1 rounded-full">
+              <Globe2 className="size-3 text-emerald-700" />
               TomTom Live Traffic
             </div>
           </div>
 
           {/* Search / Custom Location Box */}
           <div className="relative">
-            <label className="block text-xs font-bold text-[#6b625b] mb-1.5">
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
               Search City, Town, or Enter Custom GPS Coordinates:
             </label>
             <div className="relative flex items-center">
-              <Search className="absolute left-3.5 size-4 text-[#9e9189]" />
+              <Search className="absolute left-3.5 size-4 text-slate-400" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => handleQueryChange(e.target.value)}
                 placeholder="Type city name (e.g. Kochi, Bangalore, Aluva) or lat, lon..."
                 autoFocus
-                className="h-12 w-full rounded-2xl border border-[#e8e0d5] bg-white pl-10 pr-10 text-sm font-semibold text-[#2c2825] placeholder:text-[#9e9189] focus:border-[#2563eb] focus:outline-none focus:ring-2 focus:ring-blue-500/20 shadow-xs"
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50/50 pl-10 pr-10 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:border-emerald-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 shadow-xs"
               />
               {isSearching && (
-                <RefreshCw className="absolute right-3.5 size-4 animate-spin text-[#a67c52]" />
+                <RefreshCw className="absolute right-3.5 size-4 animate-spin text-emerald-600" />
               )}
             </div>
 
             {/* Suggestions Dropdown */}
             {suggestions.length > 0 && (
-              <div className="mt-2 divide-y divide-[#f0ece7] rounded-2xl border border-[#e8e0d5] bg-white p-1.5 shadow-xl max-h-56 overflow-y-auto">
+              <div className="mt-2 divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl max-h-56 overflow-y-auto">
                 {suggestions.map((item, idx) => {
                   const lat = item.position?.lat || 10.0601
                   const lon = item.position?.lon || 76.6214
@@ -303,18 +303,18 @@ export function SectorSelectorModal({
                       key={idx}
                       type="button"
                       onClick={() => handleSelectCustom(lat, lon, label)}
-                      className="flex w-full items-center justify-between rounded-xl p-3 text-left transition-colors hover:bg-blue-50/60"
+                      className="flex w-full items-center justify-between rounded-xl p-3 text-left transition-colors hover:bg-emerald-50 cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex size-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                           <MapPin className="size-4" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-[#2c2825]">{label}</p>
-                          <p className="text-[11px] font-mono text-[#9e9189]">{subtitle}</p>
+                          <p className="text-xs font-bold text-slate-900">{label}</p>
+                          <p className="text-[11px] font-mono text-slate-500">{subtitle}</p>
                         </div>
                       </div>
-                      <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 bg-blue-100/60 px-2.5 py-1 rounded-lg">
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
                         Select <ArrowRight className="size-3" />
                       </span>
                     </button>
@@ -327,10 +327,10 @@ export function SectorSelectorModal({
           {/* Preset Major City Hubs */}
           <div>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#9e9189]">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
                 Quick Select Operational City Sectors (Kerala Grid)
               </span>
-              <span className="text-[10px] text-[#9e9189]">Click to initialize</span>
+              <span className="text-[10px] text-slate-400">Click to initialize</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -346,18 +346,18 @@ export function SectorSelectorModal({
                     key={city.name}
                     type="button"
                     onClick={() => handleSelectPreset(city)}
-                    className={`group flex items-center justify-between rounded-2xl p-3.5 text-left transition-all border ${
+                    className={`group flex items-center justify-between rounded-2xl p-3.5 text-left transition-all border cursor-pointer ${
                       isSelected
-                        ? 'border-[#2c2825] bg-[#2c2825] text-white shadow-lg'
-                        : 'border-[#e8e0d5] bg-white text-[#2c2825] hover:border-[#2563eb] hover:bg-blue-50/40 hover:shadow-xs'
+                        ? 'border-emerald-600 bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+                        : 'border-slate-200 bg-white text-slate-900 hover:border-emerald-300 hover:bg-slate-50 hover:shadow-xs'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div
                         className={`flex size-9 shrink-0 items-center justify-center rounded-xl transition ${
                           isSelected
-                            ? 'bg-[#c8a97e] text-[#2c2825]'
-                            : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                            ? 'bg-white text-emerald-600'
+                            : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
                         }`}
                       >
                         <Building2 className="size-4.5" />
@@ -370,14 +370,14 @@ export function SectorSelectorModal({
                         </div>
                         <p
                           className={`text-[10px] truncate mt-0.5 ${
-                            isSelected ? 'text-[#c8a97e]' : 'text-[#9e9189]'
+                            isSelected ? 'text-emerald-100' : 'text-slate-500'
                           }`}
                         >
                           {city.district}
                         </p>
                         <p
                           className={`text-[10px] font-mono font-semibold ${
-                            isSelected ? 'text-white/70' : 'text-[#a67c52]'
+                            isSelected ? 'text-white/80' : 'text-emerald-700'
                           }`}
                         >
                           {city.lat.toFixed(4)}° N, {city.lon.toFixed(4)}° E
@@ -387,11 +387,11 @@ export function SectorSelectorModal({
 
                     <div className="shrink-0 ml-2">
                       {isSelected ? (
-                        <span className="flex items-center gap-1 rounded-full bg-[#c8a97e] px-2 py-0.5 text-[10px] font-bold text-[#2c2825]">
+                        <span className="flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-emerald-700">
                           <CheckCircle2 className="size-3" /> Active
                         </span>
                       ) : (
-                        <div className="flex size-7 items-center justify-center rounded-lg border border-[#e8e0d5] bg-[#faf8f5] text-[#9e9189] transition group-hover:border-blue-600 group-hover:bg-blue-600 group-hover:text-white">
+                        <div className="flex size-7 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 transition group-hover:border-emerald-600 group-hover:bg-emerald-600 group-hover:text-white">
                           <ArrowRight className="size-3.5" />
                         </div>
                       )}
@@ -404,8 +404,8 @@ export function SectorSelectorModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="border-t border-[#e8e0d5] bg-white p-4 text-center">
-          <p className="text-xs text-[#9e9189]">
+        <div className="border-t border-slate-100 bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-500">
             Selected city coordinates establish the <strong>10km surveillance radius</strong> for live TomTom traffic flow, ML bottleneck forecasts, and signal decision support.
           </p>
         </div>

@@ -1,22 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import Dynamic from 'next/dynamic'
-import {
-  Search,
-  MapPin,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  RefreshCw,
-  BarChart3,
-  Radio,
-  ShieldCheck,
-  Car,
-  Navigation,
-  AlertCircle,
-  Clock,
-} from 'recharts'
 import {
   AreaChart,
   Area,
@@ -38,25 +22,10 @@ import {
   Radio as RadioIcon,
   ShieldCheck as ShieldCheckIcon,
   Car as CarIcon,
-  Navigation as NavigationIcon,
   AlertCircle as AlertCircleIcon,
   Clock as ClockIcon,
 } from 'lucide-react'
 import { CorridorDetail, SeverityLevel } from '@/types/traffic'
-
-// Dynamically import Leaflet Map to avoid SSR issues
-const TrafficMapView = Dynamic(
-  () => import('@/components/admin/traffic-map-view').then((m) => m.TrafficMapView),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-[420px] w-full items-center justify-center rounded-2xl border border-[#e8e0d5] bg-white text-sm font-semibold text-[#9e9189]">
-        <RefreshCwIcon className="mr-2 size-5 animate-spin text-[#a67c52]" />
-        Loading Live City Traffic Map...
-      </div>
-    ),
-  }
-)
 
 const TOMTOM_KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
 
@@ -320,23 +289,23 @@ export default function AdminForecastPage() {
   }
 
   return (
-    <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8 bg-[#faf8f5] min-h-screen">
+    <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8 bg-slate-50 min-h-screen">
       {/* ── Page Header & Navigation ── */}
-      <header className="flex flex-col gap-4 border-b border-[#e8e0d5] pb-6 sm:flex-row sm:items-center sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-md bg-[#2c2825] px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#c8a97e]">
+            <span className="rounded-md bg-emerald-600 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-white shadow-xs">
               City Planner Operations
             </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-900">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-extrabold text-emerald-800">
               <RadioIcon className="size-3 text-emerald-600 animate-pulse" />
               Live TomTom Telemetry Stream
             </span>
           </div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825] sm:text-3xl">
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
             Traffic Forecast & Surveillance Intelligence
           </h1>
-          <p className="mt-1 text-xs text-[#9e9189]">
+          <p className="mt-1 text-xs text-slate-500">
             Real-time TomTom flow telemetry combined with PyTorch/LSTM predictive congestion modeling.
           </p>
         </div>
@@ -346,21 +315,21 @@ export default function AdminForecastPage() {
             type="button"
             onClick={() => fetchLiveTelemetry()}
             disabled={isRefreshing}
-            className="flex items-center gap-2 rounded-xl bg-[#2c2825] px-4 py-2.5 text-xs font-bold text-[#faf8f5] shadow-xs transition-all hover:bg-[#1e1b18] cursor-pointer disabled:opacity-60"
+            className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-700 cursor-pointer disabled:opacity-60"
           >
-            <RefreshCwIcon className={`size-3.5 text-[#c8a97e] ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCwIcon className={`size-3.5 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Fetching Live API...' : 'Refresh Live Telemetry'}</span>
           </button>
         </div>
       </header>
 
       {/* ── City Search Bar & Quick City Selectors ── */}
-      <div className="rounded-2xl border border-[#e8e0d5] bg-white p-5 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <MapPinIcon className="size-5 text-[#a67c52]" />
-            <h2 className="text-sm font-black text-[#2c2825]">Active Surveillance City Sector</h2>
-            <span className="text-xs font-mono font-bold text-[#a67c52] bg-[#faf6f0] px-2.5 py-0.5 rounded-md border border-[#c8a97e]/30">
+            <MapPinIcon className="size-5 text-emerald-600" />
+            <h2 className="text-sm font-black text-slate-900">Active Surveillance City Sector</h2>
+            <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
               ({selectedCity.lat.toFixed(4)}°, {selectedCity.lon.toFixed(4)}°)
             </span>
           </div>
@@ -368,19 +337,19 @@ export default function AdminForecastPage() {
           {/* City Search Input */}
           <form onSubmit={handleCitySearch} className="relative flex items-center gap-2 w-full md:w-96">
             <div className="relative w-full">
-              <SearchIcon className="absolute left-3.5 top-2.5 size-4 text-[#9e9189]" />
+              <SearchIcon className="absolute left-3.5 top-2.5 size-4 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search any city (e.g. Kochi, Trivandrum, Mumbai)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-[#e8e0d5] bg-[#faf8f5] pl-9 pr-4 py-2 text-xs font-medium text-[#2c2825] outline-none focus:border-[#a67c52] focus:bg-white transition-all"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-xs font-medium text-slate-900 outline-none focus:border-emerald-500 focus:bg-white transition-all"
               />
             </div>
             <button
               type="submit"
               disabled={isSearching}
-              className="rounded-xl bg-[#2c2825] px-4 py-2 text-xs font-bold text-white transition-all hover:bg-[#1e1b18] cursor-pointer shrink-0 disabled:opacity-50"
+              className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white transition-all hover:bg-emerald-700 cursor-pointer shrink-0 disabled:opacity-50 shadow-xs shadow-emerald-500/20"
             >
               {isSearching ? 'Searching...' : 'Search'}
             </button>
@@ -389,15 +358,15 @@ export default function AdminForecastPage() {
 
         {/* Search Results Dropdown / Prompt */}
         {searchResults.length > 0 && (
-          <div className="rounded-xl border border-[#a67c52] bg-[#faf6f0] p-3 space-y-1">
-            <p className="text-[11px] font-bold text-[#8e6943] uppercase tracking-wider">Select Location Match:</p>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 space-y-1">
+            <p className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Select Location Match:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {searchResults.map((res, i) => (
                 <button
                   key={i}
                   type="button"
                   onClick={() => selectCityResult(res)}
-                  className="flex items-center justify-between rounded-lg bg-white p-2.5 text-xs text-left font-bold text-[#2c2825] hover:bg-[#2c2825] hover:text-white transition-all cursor-pointer border border-[#e8e0d5]"
+                  className="flex items-center justify-between rounded-lg bg-white p-2.5 text-xs text-left font-bold text-slate-900 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer border border-slate-200"
                 >
                   <span>{res.name}</span>
                   <span className="text-[10px] font-mono opacity-70">({res.lat.toFixed(2)}°, {res.lon.toFixed(2)}°)</span>
@@ -416,7 +385,7 @@ export default function AdminForecastPage() {
 
         {/* Quick Preset City Chips */}
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-[#9e9189] mb-2">
+          <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 mb-2">
             Quick City Presets:
           </p>
           <div className="flex flex-wrap gap-2">
@@ -429,8 +398,8 @@ export default function AdminForecastPage() {
                   onClick={() => selectCityResult(city)}
                   className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer ${
                     isSelected
-                      ? 'bg-[#2c2825] text-[#c8a97e] border border-[#2c2825] shadow-xs'
-                      : 'bg-[#faf8f5] text-[#6b625b] border border-[#e8e0d5] hover:bg-[#e8e0d5]/60 hover:text-[#2c2825]'
+                      ? 'bg-emerald-600 text-white border border-emerald-600 shadow-xs shadow-emerald-500/20'
+                      : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
                   {city.name}
@@ -442,69 +411,69 @@ export default function AdminForecastPage() {
       </div>
 
       {/* ── City-Wide Telemetry Summary Banner ── */}
-      <div className="rounded-2xl border border-[#2c2825] bg-[#2c2825] p-6 text-[#faf8f5] shadow-lg">
+      <div className="rounded-2xl border border-emerald-600/30 bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
-            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-[#3d3733] border border-[#a67c52]/40">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-900/50 border border-emerald-500/30">
               <TrendIcon />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-black text-[#faf8f5]">{selectedCity.name} Live Overview</h2>
+                <h2 className="text-lg font-black text-white">{selectedCity.name} Live Overview</h2>
                 <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
                   REAL-TIME TOMTOM DATA
                 </span>
               </div>
-              <p className="mt-1 text-xs text-[#c8a97e] font-medium max-w-xl">
+              <p className="mt-1 text-xs text-emerald-100 font-medium max-w-xl">
                 {getTrendLabel()}
               </p>
-              <p className="mt-1.5 text-[11px] text-[#9e9189] font-mono">
+              <p className="mt-1.5 text-[11px] text-slate-400 font-mono">
                 Evaluated: {lastUpdated || 'Connecting to live API...'} · Grid Radius: 10km Bounding Box
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 border-t border-[#3d3733] pt-4 md:border-t-0 md:pt-0 shrink-0">
+          <div className="flex items-center gap-6 border-t border-slate-800 pt-4 md:border-t-0 md:pt-0 shrink-0">
             <div className="text-center">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9e9189]">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 Current Density
               </span>
-              <div className="font-mono text-3xl font-black text-[#faf8f5] mt-0.5">{avgNow}%</div>
-              <span className="text-[10px] text-[#c8a97e] font-bold">Live Flow Index</span>
+              <div className="font-mono text-3xl font-black text-white mt-0.5">{avgNow}%</div>
+              <span className="text-[10px] text-emerald-300 font-bold">Live Flow Index</span>
             </div>
 
-            <div className="h-10 w-px bg-[#3d3733]" />
+            <div className="h-10 w-px bg-slate-800" />
 
             <div className="text-center">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9e9189]">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                 {horizon === '15m' ? '15-Min Forecast' : horizon === '1h' ? '1-Hour Forecast' : horizon === '3h' ? '3-Hour Forecast' : horizon === '6h' ? '6-Hour Forecast' : '10-Hour Forecast'}
               </span>
               <div className={`font-mono text-3xl font-black mt-0.5 ${delta >= 4 ? 'text-rose-400' : 'text-emerald-400'}`}>
                 {avgNext}%
               </div>
-              <span className="text-[10px] text-[#c8a97e] font-bold">PyTorch Model</span>
+              <span className="text-[10px] text-emerald-300 font-bold">PyTorch Model</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Dynamic ML Forecast Projection Chart ── */}
-      <div className="rounded-2xl border border-[#e8e0d5] bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <BarChart3Icon className="size-5 text-[#a67c52]" />
-              <h3 className="text-base font-black text-[#2c2825]">
+              <BarChart3Icon className="size-5 text-emerald-600" />
+              <h3 className="text-base font-black text-slate-900">
                 {horizonTitles[horizon]?.title || 'Predictive Congestion Horizon'}
               </h3>
             </div>
-            <p className="text-xs text-[#9e9189] mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5">
               {horizonTitles[horizon]?.desc || 'PyTorch Neural Network projection curve comparing live telemetry baseline vs predicted traffic surge.'}
             </p>
           </div>
 
           {/* Horizon Selector Tabs */}
-          <div className="flex items-center gap-1 rounded-xl bg-[#faf8f5] p-1 border border-[#e8e0d5]">
+          <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200">
             {(['15m', '1h', '3h', '6h', '10h'] as const).map((h) => (
               <button
                 key={h}
@@ -512,8 +481,8 @@ export default function AdminForecastPage() {
                 onClick={() => setHorizon(h)}
                 className={`rounded-lg px-3 py-1 text-xs font-extrabold transition-all cursor-pointer ${
                   horizon === h
-                    ? 'bg-[#2c2825] text-[#c8a97e] shadow-xs'
-                    : 'text-[#6b625b] hover:text-[#2c2825]'
+                    ? 'bg-emerald-600 text-white shadow-xs shadow-emerald-500/20'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {h}
@@ -528,20 +497,20 @@ export default function AdminForecastPage() {
             <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#a67c52" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#a67c52" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#059669" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#059669" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorBaseline" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2c2825" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#2c2825" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#64748b" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#64748b" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0ece7" />
-              <XAxis dataKey="time" stroke="#9e9189" fontSize={11} tickLine={false} />
-              <YAxis domain={[0, 100]} stroke="#9e9189" fontSize={11} tickFormatter={(v) => `${v}%`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="time" stroke="#94a3b8" fontSize={11} tickLine={false} />
+              <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={11} tickFormatter={(v) => `${v}%`} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#2c2825',
+                  backgroundColor: '#0f172a',
                   border: 'none',
                   borderRadius: '12px',
                   color: '#fff',
@@ -552,7 +521,7 @@ export default function AdminForecastPage() {
               <Area
                 type="monotone"
                 dataKey="ML Forecast"
-                stroke="#a67c52"
+                stroke="#059669"
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorForecast)"
@@ -560,7 +529,7 @@ export default function AdminForecastPage() {
               <Area
                 type="monotone"
                 dataKey="Baseline"
-                stroke="#2c2825"
+                stroke="#64748b"
                 strokeWidth={2}
                 strokeDasharray="4 4"
                 fillOpacity={1}
@@ -571,57 +540,24 @@ export default function AdminForecastPage() {
         </div>
       </div>
 
-      {/* ── Interactive Live Leaflet Traffic Map ── */}
-      <div className="rounded-2xl border border-[#e8e0d5] bg-white p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <NavigationIcon className="size-5 text-[#a67c52]" />
-            <h3 className="text-base font-black text-[#2c2825]">
-              Live 10km Grid Traffic Surveillance Map — {selectedCity.name}
-            </h3>
-          </div>
-          <span className="text-xs text-[#9e9189] font-mono">
-            {corridors.length} Monitored Flow Nodes
-          </span>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-[#e8e0d5]">
-          <TrafficMapView
-            corridors={corridors}
-            bottlenecks={corridors.map((c) => ({
-              id: c.corridor_id,
-              corridor_id: c.corridor_id,
-              corridor_name: c.corridor_name,
-              window: 'Live Telemetry Window',
-              days: 'Active',
-              severity: c.severity,
-              avg_delay_mins: c.historical_avg_delay,
-              trend_percent: 6,
-              confidence: c.confidence,
-              coordinates: c.coordinates[0] || [selectedCity.lat, selectedCity.lon],
-            }))}
-          />
-        </div>
-      </div>
-
       {/* ── Live Corridor Breakdown Cards ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-black text-[#2c2825]">
+          <h3 className="text-base font-black text-slate-900">
             Monitored Corridor Telemetry Breakdown ({corridors.length} Points)
           </h3>
-          <span className="text-xs font-bold text-[#a67c52]">
+          <span className="text-xs font-bold text-emerald-700">
             Showing Live TomTom Data
           </span>
         </div>
 
         {loading ? (
-          <div className="rounded-2xl border border-[#e8e0d5] bg-white p-12 text-center text-sm font-semibold text-[#9e9189]">
-            <RefreshCwIcon className="mx-auto mb-3 size-6 animate-spin text-[#a67c52]" />
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm font-semibold text-slate-500">
+            <RefreshCwIcon className="mx-auto mb-3 size-6 animate-spin text-emerald-600" />
             Querying TomTom Traffic Flow APIs and PyTorch ML models...
           </div>
         ) : corridors.length === 0 ? (
-          <div className="rounded-2xl border border-[#e8e0d5] bg-white p-8 text-center text-xs font-semibold text-[#9e9189]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs font-semibold text-slate-500">
             No traffic corridor points returned for {selectedCity.name}. Please select another city above.
           </div>
         ) : (
@@ -640,17 +576,17 @@ export default function AdminForecastPage() {
               return (
                 <div
                   key={c.corridor_id}
-                  className="rounded-2xl border border-[#e8e0d5] bg-white p-4 shadow-xs transition-all hover:shadow-md space-y-3"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs transition-all hover:shadow-md space-y-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <MapPinIcon className="size-3.5 text-[#a67c52] shrink-0" />
-                        <span className="text-xs font-black text-[#2c2825] truncate">
+                        <MapPinIcon className="size-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-xs font-black text-slate-900 truncate">
                           {c.corridor_name}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono text-[#9e9189] ml-5">
+                      <span className="text-[10px] font-mono text-slate-400 ml-5">
                         {firstCoord[0]?.toFixed(4)}°, {firstCoord[1]?.toFixed(4)}°
                       </span>
                     </div>
@@ -667,26 +603,26 @@ export default function AdminForecastPage() {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#f0ece7]">
-                    <div className="bg-[#faf8f5] p-2.5 rounded-xl border border-[#e8e0d5]">
-                      <span className="text-[10px] font-bold text-[#9e9189] uppercase">Current Speed</span>
-                      <p className="text-base font-black text-[#2c2825] font-mono">{c.current_speed_kmh} <span className="text-xs font-normal">km/h</span></p>
-                      <span className="text-[10px] text-[#6b625b]">Free Flow: {c.free_flow_speed_kmh} km/h</span>
+                  <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Current Speed</span>
+                      <p className="text-base font-black text-slate-900 font-mono">{c.current_speed_kmh} <span className="text-xs font-normal">km/h</span></p>
+                      <span className="text-[10px] text-slate-500">Free Flow: {c.free_flow_speed_kmh} km/h</span>
                     </div>
 
-                    <div className="bg-[#faf8f5] p-2.5 rounded-xl border border-[#e8e0d5]">
-                      <span className="text-[10px] font-bold text-[#9e9189] uppercase">Avg Delay</span>
-                      <p className="text-base font-black text-amber-700 font-mono">+{c.historical_avg_delay} <span className="text-xs font-normal">mins</span></p>
-                      <span className="text-[10px] text-[#6b625b]">Length: {c.length_km} km</span>
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase">Avg Delay</span>
+                      <p className="text-base font-black text-amber-600 font-mono">+{c.historical_avg_delay} <span className="text-xs font-normal">mins</span></p>
+                      <span className="text-[10px] text-slate-500">Length: {c.length_km} km</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] text-[#6b625b] pt-1">
+                  <div className="flex items-center justify-between text-[11px] text-slate-600 pt-1">
                     <div className="flex items-center gap-1 font-bold">
-                      <CarIcon className="size-3 text-[#a67c52]" />
+                      <CarIcon className="size-3 text-emerald-600" />
                       <span>Density: {c.current_congestion}%</span>
                     </div>
-                    <div className="flex items-center gap-1 font-extrabold text-emerald-800">
+                    <div className="flex items-center gap-1 font-extrabold text-emerald-700">
                       <ShieldCheckIcon className="size-3 text-emerald-600" />
                       <span>{Math.round(c.confidence * 100)}% AI Confidence</span>
                     </div>
