@@ -1,0 +1,48 @@
+{
+  "model_version": "tti-synthetic-v1",
+  "target": "congestion_index",
+  "target_formula": "free_flow_speed_kmph / actual_speed_kmph",
+  "horizon": "6h",
+  "horizon_minutes": 360,
+  "feature_names": [
+    "free_flow_speed_kmph",
+    "segment_length_m",
+    "functional_class",
+    "lanes",
+    "capacity_total",
+    "hour_sin",
+    "hour_cos",
+    "dow_sin",
+    "dow_cos",
+    "is_weekend",
+    "is_holiday",
+    "rainfall_mm",
+    "temperature_c",
+    "wind_speed_mps",
+    "weather_code",
+    "lag_15",
+    "lag_30",
+    "lag_60",
+    "rolling_1h_avg",
+    "road_type_arterial",
+    "road_type_collector",
+    "road_type_local"
+  ],
+  "split": {
+    "train": 0.7,
+    "validation": 0.15,
+    "test": 0.15,
+    "strategy": "chronological by source_timestamp"
+  },
+  "seasonal_period_steps": 672,
+  "seasonal_period_description": "7 days at 15-minute cadence; same corridor, weekday, and time slot one week earlier",
+  "gradient_boosting_config": {
+    "n_estimators": 220,
+    "learning_rate": 0.04,
+    "max_depth": 3,
+    "min_samples_leaf": 10,
+    "random_state": 20260819
+  },
+  "validation_rows": 1050,
+  "train_rows": 5394
+}

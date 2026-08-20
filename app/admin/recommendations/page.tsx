@@ -1,100 +1,170 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import { RecommendationCard, RecommendationData } from '@/components/admin/RecommendationCard'
-import { RefreshCw } from 'lucide-react'
 
-const AI_BACKEND = process.env.NEXT_PUBLIC_AI_BACKEND_URL || 'http://localhost:8000'
-const POLL_INTERVAL_MS = 60_000 // refresh every 60 seconds
+import { useEffect, useState, useCallback } from 'react'
+import { DecisionSupportCard } from '@/components/admin/decision-support-card'
+import {
+  fetchRecommendations,
+  submitDecision,
+} from '@/lib/admin-api'
+import {
+  TrafficRecommendation,
+  DecisionAction,
+} from '@/types/traffic'
+import { RefreshCw, Sparkles, ShieldCheck, MapPin, AlertCircle } from 'lucide-react'
 
 export default function RecommendationsPage() {
-  const [data, setData] = useState<RecommendationData | null>(null)
-  const [unavailable, setUnavailable] = useState(false)
+  const [recommendations, setRecommendations] = useState<TrafficRecommendation[]>([])
   const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
-  const [backendError, setBackendError] = useState('')
+  const [activeSector, setActiveSector] = useState<{ lat: number; lon: number; name?: string; cityName?: string } | null>(null)
 
-  const fetchRecommendation = useCallback(async () => {
-    setLoading(true)
-    setBackendError('')
+  const loadData = useCallback(async (sectorOverride?: { lat: number; lon: number; name?: string; cityName?: string }) => {
+    setIsRefreshing(true)
+    let sec = sectorOverride || activeSector
+    if (!sec) {
+      try {
+        const stored = localStorage.getItem('planner_active_city')
+        if (stored) sec = JSON.parse(stored)
+      } catch (_) {}
+    }
+
     try {
-      const res = await fetch(`${AI_BACKEND}/recommendations`)
-      const json = await res.json()
-      if (json.success && json.data) {
-        setData(json.data as RecommendationData)
-        setUnavailable(false)
-      } else {
-        setData(null)
-        setUnavailable(true)
-      }
+      const recs = await fetchRecommendations(sec || undefined)
+      setRecommendations(recs)
       setLastRefresh(new Date())
-    } catch (e) {
-      setBackendError('Could not reach AI backend. Make sure it is running on port 8000.')
-      setUnavailable(true)
+    } catch (_) {
+      setRecommendations([])
     } finally {
       setLoading(false)
+      setIsRefreshing(false)
     }
-  }, [])
+  }, [activeSector])
 
-  // Initial load + poll
   useEffect(() => {
-    fetchRecommendation()
-    const timer = setInterval(fetchRecommendation, POLL_INTERVAL_MS)
-    return () => clearInterval(timer)
-  }, [fetchRecommendation])
+    try {
+      const stored = localStorage.getItem('planner_active_city')
+      if (stored) {
+        setActiveSector(JSON.parse(stored))
+      }
+    } catch (_) {}
+
+    loadData()
+
+    const handleCityChanged = (e: any) => {
+      if (e.detail) {
+        setActiveSector(e.detail)
+        loadData(e.detail)
+      }
+    }
+    window.addEventListener('planner_city_changed', handleCityChanged)
+    return () => window.removeEventListener('planner_city_changed', handleCityChanged)
+  }, [loadData])
+
+  async function handleDecisionAction(
+    recId: string,
+    action: DecisionAction,
+    params?: {
+      timingAdjustment?: number
+      reroutePercent?: number
+      notes?: string
+    }
+  ) {
+    const targetRec = recommendations.find((r) => r.id === recId)
+    if (!targetRec) return
+
+    await submitDecision({
+      recommendation_id: recId,
+      corridor_id: targetRec.corridor_id,
+      corridor_name: targetRec.corridor_name,
+      action: action,
+      operator: 'City Traffic Controller',
+      reason_or_notes: params?.notes,
+      modified_parameters: {
+        custom_timing_seconds: params?.timingAdjustment,
+        reroute_percentage: params?.reroutePercent,
+      },
+    })
+  }
+
+  const activeCityName = activeSector?.name || activeSector?.cityName || 'Active City Sector'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#faf8f5' }}>
-      <main style={{ maxWidth: 800, margin: '0 auto', padding: '48px 24px 80px' }}>
-        {/* Page header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+    <div className="min-h-screen bg-[#faf8f5] p-6 lg:p-10">
+      <main className="mx-auto max-w-5xl space-y-6">
+        {/* Page Header */}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e8e0d5] pb-6">
           <div>
-            <div style={{ fontSize: 11, color: '#9e9189', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>City Planner · AI Advisory</div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: '#2c2825', letterSpacing: '-0.5px', margin: 0 }}>
-              Traffic Recommendations
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-black uppercase tracking-wider text-[#9e9189]">
+                City Planner · AI Advisory Queue
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-blue-100/70 px-2.5 py-0.5 text-[11px] font-extrabold text-blue-900">
+                <Sparkles className="size-3 text-blue-600" />
+                {recommendations.length} Active in Queue
+              </span>
+            </div>
+
+            <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825] lg:text-3xl">
+              AI Traffic Recommendations
             </h1>
-            <p style={{ color: '#9e9189', fontSize: 13, marginTop: 8 }}>
-              AI-generated advisory — review and record your decision below.
-              {lastRefresh && ` Last updated: ${lastRefresh.toLocaleTimeString()}`}
-            </p>
+
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#6b625b]">
+              <span className="flex items-center gap-1 font-bold text-[#2c2825]">
+                <MapPin className="size-3.5 text-[#a67c52]" />
+                {activeCityName}
+              </span>
+              <span>·</span>
+              <span>
+                {lastRefresh
+                  ? `Last evaluated: ${lastRefresh.toLocaleTimeString()}`
+                  : 'Evaluating live telemetry...'}
+              </span>
+            </div>
           </div>
+
           <button
-            onClick={fetchRecommendation}
-            disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: '#2c2825', color: '#c8a97e', border: 'none', fontWeight: 700, cursor: loading ? 'wait' : 'pointer', fontSize: 13 }}
+            type="button"
+            onClick={() => loadData()}
+            disabled={isRefreshing}
+            className="flex items-center gap-2 rounded-xl bg-[#2c2825] px-4 py-2.5 text-xs font-bold text-[#faf8f5] shadow-xs transition-all hover:bg-[#1e1b18] cursor-pointer"
           >
-            <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-            {loading ? 'Fetching...' : 'Refresh'}
+            <RefreshCw className={`size-3.5 text-[#c8a97e] ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span>{isRefreshing ? 'Refreshing Telemetry...' : 'Refresh Queue'}</span>
           </button>
         </div>
 
-        {/* Backend unreachable banner */}
-        {backendError && (
-          <div style={{ marginBottom: 20, padding: '12px 16px', background: '#fee2e2', borderRadius: 12, fontSize: 13, color: '#991b1b', fontWeight: 600 }}>
-            ⚠ {backendError}
-          </div>
-        )}
-
-        {/* Disclaimer */}
-        <div style={{ marginBottom: 24, padding: '10px 16px', background: '#fef9c3', borderRadius: 10, fontSize: 12, color: '#854d0e', fontWeight: 600 }}>
-          ℹ The AI advisory never acts automatically. Your explicit decision below is what gets recorded.
+        {/* Advisory Context Alert */}
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/60 p-4 text-xs font-medium text-amber-900">
+          <ShieldCheck className="size-5 shrink-0 text-amber-700" />
+          <p>
+            <strong>Human-in-the-Loop Protocol:</strong> AI recommendations do not modify signal logic automatically. Every intervention requires explicit planner review, parameter customization, or dismissal.
+          </p>
         </div>
 
-        {/* Recommendation */}
-        {loading && !data ? (
-          <div style={{ padding: 60, textAlign: 'center', color: '#9e9189', fontSize: 14 }}>Generating recommendation...</div>
-        ) : (
-          <RecommendationCard
-            data={data}
-            unavailable={unavailable}
-            onDecisionRecorded={(decision) => {
-              // After a decision, wait 2s then auto-refresh for next recommendation
-              setTimeout(fetchRecommendation, 2000)
-            }}
-          />
-        )}
+        {/* Priority Recommendation Queue */}
+        <div className="space-y-5">
+          {loading ? (
+            <div className="rounded-2xl border border-[#e8e0d5] bg-white p-12 text-center text-sm font-semibold text-[#9e9189]">
+              <RefreshCw className="mx-auto mb-3 size-6 animate-spin text-[#a67c52]" />
+              Analyzing live sensor telemetry and predicting congestion choke points...
+            </div>
+          ) : recommendations.length === 0 ? (
+            <div className="rounded-2xl border border-[#e8e0d5] bg-white p-12 text-center text-sm font-semibold text-[#9e9189]">
+              <AlertCircle className="mx-auto mb-3 size-6 text-[#9e9189]" />
+              No active congestion bottlenecks requiring signal intervention in this sector.
+            </div>
+          ) : (
+            recommendations.map((rec) => (
+              <DecisionSupportCard
+                key={rec.id}
+                recommendation={rec}
+                onDecision={handleDecisionAction}
+              />
+            ))
+          )}
+        </div>
       </main>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

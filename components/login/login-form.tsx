@@ -103,7 +103,25 @@ export function LoginForm() {
         }
 
         // Check user role from metadata or default to form state role
-        const finalRole = userRole || role
+        const finalRole = (userRole || role) as 'commuter' | 'planner'
+        if (data.user) {
+          const metaName = data.user.user_metadata?.name || data.user.user_metadata?.full_name
+          const parsedName = metaName || email.split('@')[0]
+          const formattedName = parsedName
+            .split(/[\._-]/)
+            .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ')
+
+          const userObj = {
+            id: data.user.id,
+            email: data.user.email || email,
+            role: finalRole,
+            name: formattedName || (finalRole === 'planner' ? 'City Planner' : 'Commuter User'),
+          }
+          try {
+            localStorage.setItem('flowcast_auth_user', JSON.stringify(userObj))
+          } catch (_) {}
+        }
         router.push(finalRole === 'commuter' ? '/search' : '/admin')
       }
     } catch (err: any) {
