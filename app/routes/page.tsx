@@ -751,11 +751,6 @@ function RoutesContent() {
                   pointConditions[targetI] = 'moderate'
                 }
               }
-              segments.push({
-                chunk: pts.slice(startIdx, endIdx + 1),
-                condition: cond,
-                speedKmh: spd,
-              })
             }
           }
         }
