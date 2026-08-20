@@ -82,7 +82,7 @@ export function Nav() {
           {/* ── Separator ── */}
           <div style={{ width: 1, height: 20, background: '#e8e0d5' }} />
 
-          <Link href="/admin" style={{
+          <Link href="/admin/traffic" style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '7px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700,
             textDecoration: 'none',

@@ -26,6 +26,7 @@ import {
   TrendingUp,
   AlertTriangle,
   BarChart3,
+  Zap,
 } from 'lucide-react'
 import { SectorSelectorModal, SectorPoint, PRESET_CITIES } from './sector-selector-modal'
 import { ReportIncidentModal } from './report-incident-modal'
@@ -33,13 +34,13 @@ import { signOutUser, getStoredUser, FlowcastUser } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
 export const ADMIN_NAV_ITEMS = [
-  { href: '/admin', label: 'Admin Overview', icon: LayoutDashboard },
-  { href: '/admin/traffic', label: 'Congestion Map', icon: Map },
+  { href: '/admin/traffic', label: 'Overview', icon: LayoutDashboard },
+  { href: '/admin/recommendations', label: 'Decision Support', icon: Zap },
   { href: '/admin/forecast', label: 'Forecast', icon: TrendingUp },
   { href: '/admin/bottlenecks', label: 'Bottlenecks', icon: AlertTriangle },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  { href: '/admin/incidents', label: 'Active Disruptions', icon: Flame },
   { href: '/admin/decisions', label: 'Decision History', icon: History },
-  { href: '/admin/recommendations', label: 'AI Recommendations', icon: Sparkles },
 ]
 
 export function AdminSidebar() {
@@ -94,7 +95,6 @@ export function AdminSidebar() {
 
     // 3. City Sector selection
     try {
-      const hasChosen = localStorage.getItem('planner_has_selected_city')
       const savedCity = localStorage.getItem('planner_active_city')
 
       if (savedCity) {
@@ -104,11 +104,6 @@ export function AdminSidebar() {
         const defaultCity = PRESET_CITIES[0]
         setActiveSector(defaultCity)
         localStorage.setItem('planner_active_city', JSON.stringify(defaultCity))
-      }
-
-      // If planner has never explicitly chosen a city in this browser session, open selector prompt
-      if (!hasChosen) {
-        setIsModalOpen(true)
       }
     } catch (_) {}
 
@@ -213,7 +208,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsMobileOpen(true)}
-            className="flex size-10 items-center justify-center rounded-xl border border-[#e8e0d5] bg-white text-[#2c2825] shadow-xs transition hover:bg-[#f5f2ee]"
+            className="flex size-10 items-center justify-center rounded-xl border border-[#e8e0d5] bg-white text-[#2c2825] shadow-xs transition hover:bg-[#f5f2ee] cursor-pointer"
             aria-label="Open Navigation Sidebar"
           >
             <Menu className="size-5" />
@@ -235,7 +230,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs"
+            className="flex items-center gap-1 rounded-lg bg-gradient-to-r from-amber-600 to-orange-600 px-2.5 py-1 text-xs font-bold text-white shadow-xs cursor-pointer"
             title="Report Congestion / Event"
           >
             <Flame className="size-3 fill-white" />
@@ -244,7 +239,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-600/30 bg-blue-50/90 px-2.5 py-1 text-xs font-bold text-blue-950"
+            className="flex items-center gap-1.5 rounded-lg border border-blue-600/30 bg-blue-50/90 px-2.5 py-1 text-xs font-bold text-blue-950 cursor-pointer"
             title="Change City / Sector"
           >
             <Building2 className="size-3 text-blue-600" />
@@ -274,7 +269,7 @@ export function AdminSidebar() {
         {/* ── Sidebar Header ── */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8e0d5] px-3.5">
           <Link
-            href="/admin"
+            href="/admin/traffic"
             className="flex items-center gap-2.5 text-inherit no-underline overflow-hidden transition-opacity hover:opacity-90"
             title="Flowcast - 10km Grid Traffic Intelligence"
           >
@@ -291,7 +286,7 @@ export function AdminSidebar() {
                   </span>
                 </div>
                 <p className="text-[10px] text-[#9e9189] leading-tight truncate">
-                  10km Grid Traffic Intelligence
+                  Traffic Intelligence Center
                 </p>
               </div>
             )}
@@ -301,7 +296,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={toggleCollapse}
-            className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] shadow-2xs transition hover:bg-[#f5f2ee] hover:text-[#2c2825]"
+            className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] shadow-2xs transition hover:bg-[#f5f2ee] hover:text-[#2c2825] cursor-pointer"
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -316,7 +311,7 @@ export function AdminSidebar() {
           <button
             type="button"
             onClick={() => setIsMobileOpen(false)}
-            className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] hover:bg-[#f5f2ee]"
+            className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] hover:bg-[#f5f2ee] cursor-pointer"
             aria-label="Close Sidebar"
           >
             <X className="size-4" />
@@ -329,7 +324,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="group flex w-full items-center justify-between rounded-xl border border-blue-600/25 bg-blue-50/80 p-2.5 text-left transition-all hover:bg-blue-100/80 hover:border-blue-600/40 shadow-2xs"
+              className="group flex w-full items-center justify-between rounded-xl border border-blue-600/25 bg-blue-50/80 p-2.5 text-left transition-all hover:bg-blue-100/80 hover:border-blue-600/40 shadow-2xs cursor-pointer"
               title="Click to change City / 10km grid surveillance sector"
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -357,7 +352,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsModalOpen(true)}
-              className="flex size-10 w-full items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-700 shadow-2xs transition hover:bg-blue-100"
+              className="flex size-10 w-full items-center justify-center rounded-xl border border-blue-600/30 bg-blue-50 text-blue-700 shadow-2xs transition hover:bg-blue-100 cursor-pointer"
               title={`Active City: ${activeCityName} (${activeSector?.lat.toFixed(4)}°, ${activeSector?.lon.toFixed(4)}°) - Click to change`}
             >
               <Building2 className="size-4" />
@@ -369,7 +364,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-amber-600/15 transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.01]"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 py-2.5 px-3 text-xs font-extrabold text-white shadow-md shadow-amber-600/15 transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.01] cursor-pointer"
               title="Report Temple Fest, Accident, Concert, or Road Hazard"
             >
               <Flame className="size-3.5 fill-white" />
@@ -379,7 +374,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsReportModalOpen(true)}
-              className="flex size-10 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs transition hover:scale-105"
+              className="flex size-10 w-full items-center justify-center rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-xs transition hover:scale-105 cursor-pointer"
               title="Report Congestion / Event"
             >
               <Flame className="size-4 fill-white" />
@@ -388,15 +383,7 @@ export function AdminSidebar() {
         </div>
 
         {/* ── Main Navigation Menu ── */}
-        <nav className="flex-1 space-y-1.5 overflow-y-auto px-3 py-3">
-          <div className="mb-1.5 px-2">
-            {(!isCollapsed || isMobileOpen) && (
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#9e9189]">
-                Operations & Analytics
-              </span>
-            )}
-          </div>
-
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
           {ADMIN_NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             return (
@@ -422,7 +409,6 @@ export function AdminSidebar() {
                   <span className="truncate leading-none">{label}</span>
                 )}
 
-                {/* Active Indicator Accent */}
                 {active && (
                   <span
                     className={`absolute rounded-full bg-[#c8a97e] ${
@@ -468,7 +454,7 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="flex w-full items-center justify-between gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-[#f5f2ee] focus:outline-none"
+              className="flex w-full items-center justify-between gap-2.5 rounded-xl p-2 text-left transition-colors hover:bg-[#f5f2ee] focus:outline-none cursor-pointer"
               title="Planner Account & Logout"
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -490,14 +476,14 @@ export function AdminSidebar() {
             <button
               type="button"
               onClick={() => setIsProfileMenuOpen((prev) => !prev)}
-              className="flex size-10 w-full items-center justify-center rounded-xl bg-[#2c2825] border border-[#443e39] text-xs font-black text-[#c8a97e] shadow-2xs hover:opacity-90"
+              className="flex size-10 w-full items-center justify-center rounded-xl bg-[#2c2825] border border-[#443e39] text-xs font-black text-[#c8a97e] shadow-2xs hover:opacity-90 cursor-pointer"
               title={`${plannerName} (${plannerEmail}) - Click for Account & Logout`}
             >
               {initials}
             </button>
           )}
 
-          {/* ChatGPT-Style Popover Menu */}
+          {/* Popover Menu */}
           {isProfileMenuOpen && (
             <div
               className={`absolute bottom-full mb-2 z-50 rounded-2xl border border-[#e8e0d5] bg-white p-2 shadow-2xl animate-in fade-in slide-in-from-bottom-2 duration-150 ${
@@ -540,7 +526,7 @@ export function AdminSidebar() {
                       setIsProfileMenuOpen(false)
                       setIsModalOpen(true)
                     }}
-                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-blue-600 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700"
+                    className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg bg-blue-600 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700 cursor-pointer"
                   >
                     <Building2 className="size-3" />
                     Switch Operational City
@@ -555,7 +541,7 @@ export function AdminSidebar() {
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left text-xs font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700"
+                className="flex w-full items-center gap-2.5 rounded-xl p-2.5 text-left text-xs font-bold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
               >
                 <LogOut className="size-4 text-rose-500" />
                 <span>Sign Out to Login Page</span>
@@ -576,8 +562,8 @@ export function AdminSidebar() {
       {/* ── Report Incident / Event Modal ── */}
       <ReportIncidentModal
         isOpen={isReportModalOpen}
-        defaultLat={activeSector?.lat || 10.0601}
-        defaultLon={activeSector?.lon || 76.6214}
+        defaultLat={activeSector?.lat || 10.0033}
+        defaultLon={activeSector?.lon || 76.2996}
         onClose={() => setIsReportModalOpen(false)}
       />
     </>

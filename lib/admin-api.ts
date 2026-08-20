@@ -433,7 +433,7 @@ function getStoredSectorQuery(sector?: { lat: number; lon: number; name: string 
       return `lat=${parsed.lat}&lon=${parsed.lon}&city=${encodeURIComponent(parsed.name)}`
     }
   } catch (_) {}
-  return `lat=10.0601&lon=76.6214&city=Kothamangalam`
+  return `lat=10.0033&lon=76.2996&city=Kochi`
 }
 
 export async function fetchCurrentTraffic(sector?: {
