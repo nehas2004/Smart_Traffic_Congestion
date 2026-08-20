@@ -1,6 +1,5 @@
 export async function getLiveContext() {
   const TOMTOM_API_KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'mock_key'
-  const OPENWEATHER_API_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY || 'mock_key'
   
   // Kothamangalam coordinates
   const lat = 10.0601
@@ -21,7 +20,7 @@ export async function getLiveContext() {
     ]
   }
 
-  if (TOMTOM_API_KEY === 'mock_key' || OPENWEATHER_API_KEY === 'mock_key') {
+  if (TOMTOM_API_KEY === 'mock_key') {
     return liveContext
   }
 
@@ -32,7 +31,7 @@ export async function getLiveContext() {
         { next: { revalidate: 60 } }
       ),
       fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${OPENWEATHER_API_KEY}`,
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`,
         { next: { revalidate: 300 } }
       )
     ])
@@ -49,15 +48,19 @@ export async function getLiveContext() {
 
     if (weatherRes.ok) {
       const weatherData = await weatherRes.json()
-      const weatherId = weatherData.weather?.[0]?.id || 800
+      const w = weatherData.current_weather || {}
+      const code = w.weathercode || 0
+      
       let condition = 0
-      if (weatherId < 600) condition = 1
-      else if (weatherId >= 700 && weatherId < 800) condition = 2
+      let desc = 'Clear'
+      if (code >= 50) { condition = 1; desc = 'Rain/Bad Weather' }
+      else if (code === 45 || code === 48) { condition = 2; desc = 'Fog' }
+      else if (code > 0) desc = 'Cloudy'
 
       liveContext.weather = {
         condition,
-        temp: Math.round(weatherData.main?.temp || 30),
-        desc: weatherData.weather?.[0]?.main || 'Clear'
+        temp: Math.round(w.temperature || 30),
+        desc
       }
     }
   } catch (error) {

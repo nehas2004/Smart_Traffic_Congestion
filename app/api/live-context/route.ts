@@ -11,7 +11,6 @@ export async function GET() {
   }
 
   const TOMTOM_KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY
-  const WEATHER_KEY = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
   const lat = 10.0601, lon = 76.6214
 
   const date = new Date()
@@ -41,20 +40,26 @@ export async function GET() {
       )
     }
 
-    if (WEATHER_KEY && WEATHER_KEY && WEATHER_KEY.length > 5) {
-      fetches.push(
-        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${WEATHER_KEY}`)
-          .then(r => r.json())
-          .then(d => {
-            const id = d.weather?.[0]?.id || 800
-            result.weather = {
-              desc: d.weather?.[0]?.main || 'Clear',
-              temp: Math.round(d.main?.temp || 30),
-              condition: id < 600 ? 1 : id >= 700 && id < 800 ? 2 : 0
-            }
-          }).catch(() => {})
-      )
-    }
+    fetches.push(
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`)
+        .then(r => r.json())
+        .then(d => {
+          const w = d.current_weather || {}
+          const code = w.weathercode || 0
+          
+          let condition = 0
+          let desc = 'Clear'
+          if (code >= 50) { condition = 1; desc = 'Rain/Bad Weather' }
+          else if (code === 45 || code === 48) { condition = 2; desc = 'Fog' }
+          else if (code > 0) desc = 'Cloudy'
+
+          result.weather = {
+            desc,
+            temp: Math.round(w.temperature || 30),
+            condition
+          }
+        }).catch(() => {})
+    )
 
     await Promise.all(fetches)
   } catch {}

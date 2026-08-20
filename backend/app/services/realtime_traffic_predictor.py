@@ -10,14 +10,14 @@ Usage:
 import os
 import sys
 import json
-import joblib
+import joblib # pyrefly: ignore [missing-import]
 import random
 import urllib.request
-import pandas as pd
-import numpy as np
+import pandas as pd # pyrefly: ignore [missing-import]
+import numpy as np # pyrefly: ignore [missing-import]
 try:
-    import torch
-    import torch.nn as nn
+    import torch # pyrefly: ignore [missing-import]
+    import torch.nn as nn # pyrefly: ignore [missing-import]
     HAS_TORCH = True
 except ImportError:
     HAS_TORCH = False
