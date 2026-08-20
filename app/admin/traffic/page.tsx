@@ -4,19 +4,16 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { TrafficMapView } from '@/components/admin/traffic-map-view'
 import { ActiveIncidentsPanel } from '@/components/admin/active-incidents-panel'
-import { DecisionSupportCard } from '@/components/admin/decision-support-card'
 import { ReportIncidentModal } from '@/components/admin/report-incident-modal'
 import {
   fetchCurrentTraffic,
   fetchBottlenecks,
   fetchRecommendations,
-  submitDecision,
 } from '@/lib/admin-api'
 import {
   CorridorDetail,
   BottleneckItem,
   TrafficRecommendation,
-  DecisionAction,
 } from '@/types/traffic'
 import { RefreshCw, Flame, ArrowLeft } from 'lucide-react'
 
@@ -104,27 +101,6 @@ export default function AdminTrafficMapPage() {
     }
   }, [loadData])
 
-  const selectedRecommendation = recommendations.find((r) => r.corridor_id === selectedCorridorId) || recommendations[0]
-
-  const handleDecision = async (
-    recommendationId: string,
-    action: DecisionAction,
-    modifiedParameters?: Record<string, any>,
-    reason?: string
-  ) => {
-    try {
-      await submitDecision({
-        recommendation_id: recommendationId,
-        action,
-        modified_parameters: modifiedParameters,
-        reason,
-      })
-      await loadData()
-    } catch (e) {
-      console.error('Error submitting decision:', e)
-    }
-  }
-
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 space-y-6">
       {/* Top Header */}
@@ -183,23 +159,6 @@ export default function AdminTrafficMapPage() {
 
       {/* ACTIVE REPORTED LOCAL DISRUPTIONS PANEL */}
       <ActiveIncidentsPanel onIncidentCancelled={() => loadData()} />
-
-      {/* CORRIDOR CONTEXT DECISION SUPPORT */}
-      <div className="space-y-3">
-        <h2 className="text-base font-extrabold text-slate-900">
-          Active Corridor Decision Support
-        </h2>
-        {selectedRecommendation ? (
-          <DecisionSupportCard
-            recommendation={selectedRecommendation}
-            onDecision={handleDecision}
-          />
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
-            No pending action items for this corridor.
-          </div>
-        )}
-      </div>
 
       {/* Report Incident Modal */}
       <ReportIncidentModal
