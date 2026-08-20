@@ -786,31 +786,6 @@ function RoutesContent() {
           }
         }
 
-        // Draw each colored segment on the map
-        segments.forEach((seg, sIdx) => {
-          if (seg.chunk.length < 2) return
-
-          const segColor = getColorForCondition(seg.condition)
-          const segLine = L.polyline(seg.chunk, {
-            color: segColor,
-            weight: isSelected ? 8.5 : 5,
-            opacity: isSelected ? 1.0 : 0.85,
-            dashArray: isSelected ? undefined : '7, 6',
-            lineCap: 'round',
-            lineJoin: 'round',
-          }).addTo(map)
-
-          segLine.on('click', () => setSelectedRouteIdx(idx))
-          segLine.bindTooltip(
-            `<div style="font-family:system-ui; padding:3px;">
-              <strong style="color:#0f172a;">Route ${idx + 1} (${seg.condition.toUpperCase()})</strong><br/>
-              <span style="font-size:11px; color:#475569;">Speed: ~${seg.speedKmh} km/h · Condition: ${seg.condition}</span>
-            </div>`,
-            { sticky: true }
-          )
-          polylinesRef.current.push(segLine)
-        })
-
         const totalDurationMins = fc?.totalPredictedMins || Math.round((route.summary?.travelTimeInSeconds || 0) / 60)
 
         // Invisible broader hover/click polyline across full route
