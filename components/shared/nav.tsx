@@ -9,6 +9,7 @@ import { getStoredUser, signOutUser, FlowcastUser } from '@/lib/auth'
 const navLinks = [
   { href: '/routes', label: 'Route Options', icon: Waypoints },
   { href: '/map', label: 'Live Map', icon: Map },
+  { href: '/dashboard', label: '24h Forecast', icon: BarChart2 },
 ]
 
 export function Nav() {

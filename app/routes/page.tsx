@@ -1463,9 +1463,18 @@ function RoutesContent() {
                   {departureMode !== 'now' ? departureLabel : 'Click any route tab or card to view on map'}
                 </p>
               </div>
-              <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
-                {routes.length} Active Corridors
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('route-forecast-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer transition-all"
+                >
+                  <Zap size={11} className="text-indigo-600" /> 24h Forecast ↓
+                </button>
+                <span className="text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                  {routes.length} Active Corridors
+                </span>
+              </div>
             </div>
 
             {/* Quick Route Selector Tab Bar (All 4 Corridors visible at a glance) */}
@@ -1854,7 +1863,7 @@ function RoutesContent() {
 
         {/* 24-HOUR ROUTE-SPECIFIC PREDICTIVE TRAFFIC & DELAY FORECAST CURVE */}
         {!loading && routes.length > 0 && (
-          <div className="mt-8">
+          <div id="route-forecast-section" className="mt-8">
             <ForecastChart
               fromName={searchFrom || 'Origin'}
               toName={searchTo || 'Destination'}
