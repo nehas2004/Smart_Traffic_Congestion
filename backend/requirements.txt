@@ -5,8 +5,9 @@ pydantic
 sqlalchemy
 python-dotenv
 joblib
-scikit-learn==1.9.0
 pandas
 numpy
 torch
 scikit-learn
+requests
+httpx

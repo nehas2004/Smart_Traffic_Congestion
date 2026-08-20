@@ -1,5 +1,6 @@
-import { redirect } from 'next/navigation'
+'use client'
 
+import { redirect } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { AdminKpiGrid } from '@/components/admin/admin-kpi-grid'
 import { DecisionSupportCard } from '@/components/admin/decision-support-card'

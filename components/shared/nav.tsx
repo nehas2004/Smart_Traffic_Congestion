@@ -50,7 +50,7 @@ export function Nav() {
         {/* Center & Right Navigation Links */}
         <div className="flex items-center gap-2 sm:gap-3">
           <nav className="flex items-center gap-1">
-            {links.map(({ href, label, icon: Icon }) => {
+            {navLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href
               return (
                 <Link
@@ -102,7 +102,7 @@ export function Nav() {
             <span className="hidden xs:inline">Logout</span>
           </button>
         </div>
-      )}
-    </>
+      </div>
+    </header>
   )
 }
