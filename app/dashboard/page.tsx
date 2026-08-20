@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { Nav } from '@/components/shared/nav'
 import { AlertTriangle, TrendingUp, TrendingDown, BarChart2 } from 'lucide-react'
+import { FuelCostCalculator } from '@/components/dashboard/commuter/fuel-cost-calculator'
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null)
@@ -73,7 +74,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:20 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:20, marginBottom:24 }}>
           {/* Forecast Chart */}
           <div style={{ background:'white', borderRadius:16, border:'1px solid #e8e0d5', padding:24 }}>
             <div style={{ fontWeight:700, color:'#2c2825', marginBottom:4 }}>Delay Forecast</div>
@@ -126,6 +127,11 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Commuter Fuel Cost Calculator */}
+        <div style={{ maxWidth: 640 }}>
+          <FuelCostCalculator initialDistance={35} initialMileage={15} initialFuelPrice={106.50} />
         </div>
       </main>
     </div>
