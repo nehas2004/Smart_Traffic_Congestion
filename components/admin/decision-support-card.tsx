@@ -43,12 +43,22 @@ export function DecisionSupportCard({
   recommendation,
   onDecision,
 }: DecisionSupportCardProps) {
+  const [selectedOptionId, setSelectedOptionId] = useState<string>('opt-1')
   const [isModifying, setIsModifying] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [customTiming, setCustomTiming] = useState<number>(35)
   const [customReroute, setCustomReroute] = useState<number>(25)
   const [operatorNotes, setOperatorNotes] = useState<string>('')
   const [resolvedStatus, setResolvedStatus] = useState<DecisionAction | null>(null)
+
+  const hasOptions = recommendation.options && recommendation.options.length > 0
+  const activeOption = hasOptions
+    ? recommendation.options!.find((o) => o.id === selectedOptionId) || recommendation.options![0]
+    : null
+
+  const displayActionTitle = activeOption ? activeOption.title : recommendation.title
+  const displayActionText = activeOption ? activeOption.action : recommendation.title
+  const displayReasonText = activeOption ? activeOption.reason : recommendation.description
 
   const severityColorMap: Record<string, { bg: string; text: string; border: string; label: string }> = {
     low: { bg: '#dcfce7', text: '#15803d', border: '#86efac', label: 'Low Delay' },
@@ -82,10 +92,10 @@ export function DecisionSupportCard({
         notes:
           operatorNotes ||
           (action === 'accept'
-            ? 'Approved AI signal recommendation'
+            ? `Approved AI strategy option: ${displayActionTitle}`
             : action === 'reject'
             ? 'Dismissed by traffic operator'
-            : 'Applied custom operator adjustments'),
+            : `Applied custom adjustments for strategy: ${displayActionTitle}`),
       })
       setResolvedStatus(action)
       setIsModifying(false)
@@ -168,6 +178,37 @@ export function DecisionSupportCard({
       </div>
 
       <div className="p-5 space-y-4">
+        {/* ── Multi-Strategy Option Tabs ── */}
+        {hasOptions && (
+          <div className="flex flex-col sm:flex-row gap-2.5 rounded-2xl border border-[#e8e0d5] bg-[#f5f2ee] p-2">
+            {recommendation.options!.map((opt, i) => {
+              const isSelected = selectedOptionId === opt.id || (!selectedOptionId && i === 0)
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSelectedOptionId(opt.id)}
+                  className={`flex-1 rounded-xl p-3 text-left transition-all cursor-pointer relative ${
+                    isSelected
+                      ? 'bg-white border-2 border-[#2c2825] shadow-xs text-[#2c2825]'
+                      : 'bg-[#faf8f5]/80 border border-[#e8e0d5] text-[#6b625b] hover:bg-white/70'
+                  }`}
+                >
+                  {opt.is_recommended && (
+                    <span className="absolute -top-2 right-3 rounded-md bg-[#2c2825] px-2 py-0.5 text-[9px] font-black uppercase text-[#c8a97e]">
+                      AI Recommended
+                    </span>
+                  )}
+                  <div className={`text-[10px] font-black uppercase tracking-wider mb-1 ${isSelected ? 'text-[#a67c52]' : 'text-[#9e9189]'}`}>
+                    Option {i + 1} · {opt.strategy_type.replace('_', ' ')}
+                  </div>
+                  <div className="text-xs font-bold leading-snug">{opt.title}</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* ── 3 Key Metrics Cards ── */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {/* Current Congestion */}
@@ -236,6 +277,24 @@ export function DecisionSupportCard({
           </div>
         </div>
 
+        {/* ── Strategy Trade-off Comparison Box ── */}
+        {activeOption && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 rounded-2xl border border-[#e8e0d5] bg-[#faf8f5] p-3.5">
+            <div className="rounded-xl border border-emerald-200/80 bg-emerald-50/60 p-3">
+              <div className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">
+                ✓ Expected Impact
+              </div>
+              <p className="text-xs font-bold text-emerald-900 mt-1">{activeOption.expected_impact}</p>
+            </div>
+            <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-3">
+              <div className="text-[10px] font-black uppercase text-amber-800 tracking-wider">
+                ⚠ Side-Effect Trade-off
+              </div>
+              <p className="text-xs font-bold text-amber-900 mt-1">{activeOption.side_effect_tradeoff}</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Why This Is Happening (Root Cause) ── */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {recommendation.bottleneck && (
@@ -287,11 +346,11 @@ export function DecisionSupportCard({
               Proposed Action
             </span>
             <span className="text-sm font-extrabold text-[#2c2825]">
-              {recommendation.title}
+              {displayActionText}
             </span>
           </div>
           <p className="mt-2 text-xs leading-relaxed text-[#6b625b]">
-            {recommendation.description}
+            {displayReasonText}
           </p>
         </div>
 
