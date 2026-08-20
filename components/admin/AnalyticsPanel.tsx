@@ -20,6 +20,7 @@ import {
   Flame,
   ShieldCheck,
   RefreshCw,
+  Radio,
 } from 'lucide-react'
 
 export interface CitySectorConfig {
@@ -42,6 +43,29 @@ export interface CitySectorConfig {
 }
 
 const CITY_SECTORS: CitySectorConfig[] = [
+  {
+    id: 'kochi',
+    name: 'Kochi (Ernakulam)',
+    district: 'Central Metro Corridor',
+    lat: 10.0033,
+    lon: 76.2996,
+    totalSensors: 48,
+    trainingRecords: 18432,
+    activeHotspots: 8,
+    baselineDelayMins: 7.5,
+    peakSurgeMultiplier: 3.1,
+    corridors: [
+      { id: 'edappally-bypass', name: 'Edappally Toll - Palarivattom Bypass', baseLengthKm: 12.0, baseDelay: 8.2 },
+      { id: 'kaloor-stadium', name: 'Kaloor Stadium - Banerji Road Link', baseLengthKm: 7.2, baseDelay: 7.1 },
+      { id: 'vyttila-hub', name: 'Vyttila Mobility Hub Arterial Crossing', baseLengthKm: 5.4, baseDelay: 9.4 },
+      { id: 'mg-road-metro', name: 'MG Road Commercial Metro Corridor', baseLengthKm: 8.6, baseDelay: 6.5 },
+    ],
+    metrics: {
+      lr: { mae: 0.412, rmse: 0.478, r2: 0.698, latencyMs: '< 1 ms' },
+      gbr: { mae: 0.218, rmse: 0.242, r2: 0.908, latencyMs: '4 ms' },
+      lstm: { mae: 0.224, rmse: 0.251, r2: 0.889, latencyMs: '32 ms' },
+    },
+  },
   {
     id: 'kothamangalam',
     name: 'Kothamangalam',
@@ -66,32 +90,32 @@ const CITY_SECTORS: CitySectorConfig[] = [
     },
   },
   {
-    id: 'kochi',
-    name: 'Kochi (Ernakulam)',
-    district: 'Greater Ernakulam Metro',
-    lat: 10.0033,
-    lon: 76.2996,
-    totalSensors: 48,
-    trainingRecords: 18432,
-    activeHotspots: 8,
-    baselineDelayMins: 7.5,
-    peakSurgeMultiplier: 3.1,
+    id: 'trivandrum',
+    name: 'Thiruvananthapuram',
+    district: 'Capital City & Technopark',
+    lat: 8.5241,
+    lon: 76.9366,
+    totalSensors: 42,
+    trainingRecords: 16500,
+    activeHotspots: 7,
+    baselineDelayMins: 6.8,
+    peakSurgeMultiplier: 2.9,
     corridors: [
-      { id: 'edappally-bypass', name: 'Edappally Toll - Palarivattom Bypass', baseLengthKm: 12.0, baseDelay: 8.2 },
-      { id: 'kaloor-stadium', name: 'Kaloor Stadium - Banerji Road Link', baseLengthKm: 7.2, baseDelay: 7.1 },
-      { id: 'vyttila-hub', name: 'Vyttila Mobility Hub Arterial Crossing', baseLengthKm: 5.4, baseDelay: 9.4 },
-      { id: 'mg-road-metro', name: 'MG Road Commercial Metro Corridor', baseLengthKm: 8.6, baseDelay: 6.5 },
+      { id: 'statue-eastfort', name: 'Statue - East Fort Arterial Spine', baseLengthKm: 6.8, baseDelay: 7.8 },
+      { id: 'technopark-bypass', name: 'Technopark Phase-1 Kazhakkoottam Bypass', baseLengthKm: 15.2, baseDelay: 8.6 },
+      { id: 'pattom-kesavadas', name: 'Pattom Junction & Kesavadasapuram Ring', baseLengthKm: 7.9, baseDelay: 6.9 },
+      { id: 'thampanoor-rail', name: 'Thampanoor Central Station Flyover Link', baseLengthKm: 4.1, baseDelay: 8.2 },
     ],
     metrics: {
-      lr: { mae: 0.412, rmse: 0.478, r2: 0.698, latencyMs: '< 1 ms' },
-      gbr: { mae: 0.218, rmse: 0.242, r2: 0.908, latencyMs: '4 ms' },
-      lstm: { mae: 0.224, rmse: 0.251, r2: 0.889, latencyMs: '32 ms' },
+      lr: { mae: 0.408, rmse: 0.469, r2: 0.702, latencyMs: '< 1 ms' },
+      gbr: { mae: 0.215, rmse: 0.239, r2: 0.912, latencyMs: '4 ms' },
+      lstm: { mae: 0.220, rmse: 0.248, r2: 0.894, latencyMs: '30 ms' },
     },
   },
   {
     id: 'kozhikode',
     name: 'Kozhikode',
-    district: 'Malabar Urban Sector',
+    district: 'Malabar Coastal Commercial Hub',
     lat: 11.2588,
     lon: 75.7804,
     totalSensors: 32,
@@ -132,29 +156,6 @@ const CITY_SECTORS: CitySectorConfig[] = [
       lr: { mae: 0.374, rmse: 0.432, r2: 0.722, latencyMs: '< 1 ms' },
       gbr: { mae: 0.219, rmse: 0.244, r2: 0.902, latencyMs: '4 ms' },
       lstm: { mae: 0.225, rmse: 0.254, r2: 0.885, latencyMs: '27 ms' },
-    },
-  },
-  {
-    id: 'trivandrum',
-    name: 'Trivandrum',
-    district: 'Capital Sector & IT Corridor',
-    lat: 8.5241,
-    lon: 76.9366,
-    totalSensors: 42,
-    trainingRecords: 16500,
-    activeHotspots: 7,
-    baselineDelayMins: 6.8,
-    peakSurgeMultiplier: 2.9,
-    corridors: [
-      { id: 'statue-eastfort', name: 'Statue - East Fort Arterial Spine', baseLengthKm: 6.8, baseDelay: 7.8 },
-      { id: 'technopark-bypass', name: 'Technopark Phase-1 Kazhakkoottam Bypass', baseLengthKm: 15.2, baseDelay: 8.6 },
-      { id: 'pattom-kesavadas', name: 'Pattom Junction & Kesavadasapuram Ring', baseLengthKm: 7.9, baseDelay: 6.9 },
-      { id: 'thampanoor-rail', name: 'Thampanoor Central Station Flyover Link', baseLengthKm: 4.1, baseDelay: 8.2 },
-    ],
-    metrics: {
-      lr: { mae: 0.408, rmse: 0.469, r2: 0.702, latencyMs: '< 1 ms' },
-      gbr: { mae: 0.215, rmse: 0.239, r2: 0.912, latencyMs: '4 ms' },
-      lstm: { mae: 0.220, rmse: 0.248, r2: 0.894, latencyMs: '30 ms' },
     },
   },
   {
@@ -205,34 +206,73 @@ const CITY_SECTORS: CitySectorConfig[] = [
   },
 ]
 
+function findMatchingSector(parsed: any): CitySectorConfig {
+  if (!parsed) return CITY_SECTORS[0]
+  const str = `${parsed.name || ''} ${parsed.cityName || ''} ${parsed.district || ''}`.toLowerCase()
+
+  // 1. Specific string matching
+  if (str.includes('kothamangalam') || str.includes('thankalam') || str.includes('kozhippilly')) {
+    return CITY_SECTORS.find((c) => c.id === 'kothamangalam') || CITY_SECTORS[0]
+  }
+  if (str.includes('kochi') || str.includes('ernakulam') || str.includes('edappally') || str.includes('vyttila') || str.includes('kaloor')) {
+    return CITY_SECTORS.find((c) => c.id === 'kochi') || CITY_SECTORS[0]
+  }
+  if (str.includes('thiruvananthapuram') || str.includes('trivandrum') || str.includes('technopark') || str.includes('statue')) {
+    return CITY_SECTORS.find((c) => c.id === 'trivandrum') || CITY_SECTORS[0]
+  }
+  if (str.includes('kozhikode') || str.includes('calicut') || str.includes('mavoor')) {
+    return CITY_SECTORS.find((c) => c.id === 'kozhikode') || CITY_SECTORS[0]
+  }
+  if (str.includes('thrissur') || str.includes('trichur') || str.includes('swaraj')) {
+    return CITY_SECTORS.find((c) => c.id === 'thrissur') || CITY_SECTORS[0]
+  }
+  if (str.includes('aluva') || str.includes('periyar')) {
+    return CITY_SECTORS.find((c) => c.id === 'aluva') || CITY_SECTORS[0]
+  }
+  if (str.includes('munnar') || str.includes('idukki') || str.includes('devikulam')) {
+    return CITY_SECTORS.find((c) => c.id === 'munnar') || CITY_SECTORS[0]
+  }
+
+  // 2. Proximity match by coordinates if available
+  if (parsed.lat && parsed.lon) {
+    let best = CITY_SECTORS[0]
+    let minDistance = 999999
+    for (const s of CITY_SECTORS) {
+      const d = Math.hypot(s.lat - parsed.lat, s.lon - parsed.lon)
+      if (d < minDistance) {
+        minDistance = d
+        best = s
+      }
+    }
+    return best
+  }
+
+  return CITY_SECTORS[0]
+}
+
 export function AnalyticsPanel() {
-  const [selectedCityId, setSelectedCityId] = useState<string>('kothamangalam')
+  const [selectedCityId, setSelectedCityId] = useState<string>('kochi')
   const [selectedHorizon, setSelectedHorizon] = useState<'1h' | '3h' | '6h' | '24h'>('1h')
   const [selectedCorridorId, setSelectedCorridorId] = useState<string>('')
   const [simEvent, setSimEvent] = useState<boolean>(false)
   const [simWeather, setSimWeather] = useState<'Clear' | 'Rainy' | 'Storm'>('Clear')
   const [timeHour, setTimeHour] = useState<number>(18)
 
-  // Sync city with localStorage & window event
+  // 1. Initial Load & Two-Way Sync with Left Sidebar
   useEffect(() => {
     try {
       const stored = localStorage.getItem('planner_active_city')
       if (stored) {
         const parsed = JSON.parse(stored)
-        const matched = CITY_SECTORS.find(
-          (c) =>
-            (parsed.name && c.name.toLowerCase().includes(parsed.name.toLowerCase())) ||
-            (parsed.cityName && c.name.toLowerCase().includes(parsed.cityName.toLowerCase()))
-        )
-        if (matched) setSelectedCityId(matched.id)
+        const matched = findMatchingSector(parsed)
+        setSelectedCityId(matched.id)
       }
     } catch (_) {}
 
     const onCityChange = (e: any) => {
-      if (e.detail && (e.detail.cityName || e.detail.name)) {
-        const name = (e.detail.cityName || e.detail.name).toLowerCase()
-        const matched = CITY_SECTORS.find((c) => c.name.toLowerCase().includes(name))
-        if (matched) setSelectedCityId(matched.id)
+      if (e.detail) {
+        const matched = findMatchingSector(e.detail)
+        setSelectedCityId(matched.id)
       }
     }
 
@@ -262,12 +302,26 @@ export function AnalyticsPanel() {
       try {
         localStorage.setItem(
           'planner_active_city',
-          JSON.stringify({ lat: target.lat, lon: target.lon, name: target.name, cityName: target.name })
+          JSON.stringify({
+            lat: target.lat,
+            lon: target.lon,
+            name: target.name,
+            cityName: target.name,
+            district: target.district,
+            radiusKm: 10,
+          })
         )
       } catch (_) {}
       window.dispatchEvent(
         new CustomEvent('planner_city_changed', {
-          detail: { lat: target.lat, lon: target.lon, name: target.name, cityName: target.name },
+          detail: {
+            lat: target.lat,
+            lon: target.lon,
+            name: target.name,
+            cityName: target.name,
+            district: target.district,
+            radiusKm: 10,
+          },
         })
       )
     }
@@ -339,87 +393,59 @@ export function AnalyticsPanel() {
 
     // Model variations
     if (modelIndex === 0) {
-      // Linear regression struggles with non-linear spikes
       return Math.round(baseDelay * 0.91 * horizonFactor * 10) / 10
     } else if (modelIndex === 1) {
-      // Gradient boosting accurate non-linear fit
       return Math.round(baseDelay * horizonFactor * 10) / 10
     } else {
-      // LSTM smooth memory forecast
       return Math.round(baseDelay * 1.03 * horizonFactor * 10) / 10
     }
   }
 
   return (
     <div className="space-y-8">
-      {/* ── CITY SECTOR SELECTOR CONTROLLER ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs font-bold">
+      {/* ── ACTIVE SECTOR BANNER (SYNCED WITH SIDEBAR) ── */}
+      <div className="rounded-2xl border-2 border-emerald-500/30 bg-emerald-50/50 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs font-bold shrink-0">
               <Compass className="size-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-                  Active City Sector: <span className="text-emerald-700">{activeCity.name}</span>
-                </h2>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  {activeCity.district}
+                <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <Radio className="size-3 animate-pulse text-emerald-700" /> Active City Sector (Sidebar Synced)
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium mt-0.5">
-                Model training datasets, cross-validation metrics, and predictive curves update dynamically per sector.
+              <h2 className="text-lg font-black text-slate-900 tracking-tight mt-0.5">
+                {activeCity.name} · <span className="text-slate-500 font-semibold text-sm">{activeCity.district}</span>
+              </h2>
+              <p className="text-xs text-slate-600 font-medium mt-0.5">
+                Coordinates: <span className="font-mono font-bold text-slate-800">{activeCity.lat.toFixed(4)}° N, {activeCity.lon.toFixed(4)}° E</span> · Surveillance Radius: <strong>10.0 km</strong>
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-xs font-bold text-slate-400">Sector Dropdown:</span>
-            <select
-              value={selectedCityId}
-              onChange={(e) => handleCitySelect(e.target.value)}
-              className="bg-slate-50 text-slate-900 text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-            >
-              {CITY_SECTORS.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.district})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Preset City Sector Quick Pills */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1">
-            Quick Sectors:
-          </span>
-          {CITY_SECTORS.map((city) => {
-            const isSelected = city.id === activeCity.id
-            return (
-              <button
-                key={city.id}
-                type="button"
-                onClick={() => handleCitySelect(city.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  isSelected
-                    ? 'bg-emerald-600 text-white shadow-xs ring-2 ring-emerald-500/20'
-                    : 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-              >
-                <MapPin className="size-3" />
-                <span>{city.name}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-mono ${
-                    isSelected ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'
+          {/* Quick Sector Switcher Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-white/80 p-2 rounded-xl border border-emerald-200/60 shadow-2xs">
+            <span className="text-[10px] font-extrabold uppercase text-slate-400 pl-1 pr-1">Switch:</span>
+            {CITY_SECTORS.map((city) => {
+              const isSelected = city.id === activeCity.id
+              return (
+                <button
+                  key={city.id}
+                  type="button"
+                  onClick={() => handleCitySelect(city.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    isSelected
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900'
                   }`}
                 >
-                  {city.trainingRecords.toLocaleString()} rows
-                </span>
-              </button>
-            )
-          })}
+                  {city.name.split(' ')[0]}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
@@ -490,7 +516,7 @@ export function AnalyticsPanel() {
             </p>
           </div>
           <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-            <CheckCircle2 className="size-3.5 text-emerald-600" /> Model Held-out Validation Verified
+            <CheckCircle2 className="size-3.5 text-emerald-600" /> Held-out Synthetic Validation Verified
           </span>
         </div>
 
