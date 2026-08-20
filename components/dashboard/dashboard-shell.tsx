@@ -4,6 +4,7 @@ import { Waypoints, Cloud, Clock } from 'lucide-react'
 import { RouteCard } from './commuter/route-card'
 import { ForecastChart } from './commuter/forecast-chart'
 import { IncidentFeed } from './commuter/incident-feed'
+import { FuelCostCalculator } from './commuter/fuel-cost-calculator'
 import { useEffect, useRef } from 'react'
 
 function LiveMapWidget() {
@@ -123,6 +124,7 @@ export function DashboardShell({ role, liveContext }: { role: string, liveContex
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="flex flex-col gap-6 lg:col-span-1">
                 <RouteCard liveContext={liveContext} />
+                <FuelCostCalculator initialDistance={28.5} initialMileage={15.0} initialFuelPrice={106.50} />
                 <IncidentFeed liveContext={liveContext} />
               </div>
               <div className="flex flex-col gap-6 lg:col-span-2">

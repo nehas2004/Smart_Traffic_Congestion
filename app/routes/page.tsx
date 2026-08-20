@@ -25,6 +25,7 @@ import {
   ChevronDown,
   X,
 } from 'lucide-react'
+import { calculateFuelCost } from '@/components/dashboard/commuter/fuel-cost-calculator'
 
 const FREE_FLOW = 48
 
@@ -252,9 +253,33 @@ function RoutesContent() {
     activeParams ? { lat: parseFloat(activeParams.toLat), lon: parseFloat(activeParams.toLon) } : null
   )
 
-  const fromContainerRef = useRef<HTMLDivElement>(null)
-  const toContainerRef = useRef<HTMLDivElement>(null)
-  const departurePopoverRef = useRef<HTMLDivElement>(null)
+  const [fromContainerRef, toContainerRef, departurePopoverRef] = [
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+    useRef<HTMLDivElement>(null),
+  ]
+
+  // User configured vehicle mileage state (default 15 km/L, synced with localStorage & Nav Fuel Calculator)
+  const [userMileage, setUserMileage] = useState<number>(15.0)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('flowcast_mileage')
+      if (stored) {
+        const num = parseFloat(stored)
+        if (!isNaN(num) && num > 0) setUserMileage(num)
+      }
+    } catch (_) {}
+
+    const handleMileageChange = (e: any) => {
+      if (e.detail?.mileage && e.detail.mileage > 0) {
+        setUserMileage(e.detail.mileage)
+      }
+    }
+
+    window.addEventListener('flowcast_mileage_change', handleMileageChange)
+    return () => window.removeEventListener('flowcast_mileage_change', handleMileageChange)
+  }, [])
 
   useEffect(() => {
     if (activeParams?.fromName) setSearchFrom(activeParams.fromName)
@@ -362,7 +387,7 @@ function RoutesContent() {
   const heatLayerRef = useRef<any>(null)
   const flowTileRef = useRef<any>(null)
 
-  const [mapLayerMode, setMapLayerMode] = useState<'hybrid' | 'heatmap' | 'flow'>('hybrid')
+  const [mapLayerMode, setMapLayerMode] = useState<'hybrid' | 'heatmap'>('hybrid')
   const [showHeatmap, setShowHeatmap] = useState(true)
   const [showFlow, setShowFlow] = useState(true)
 
@@ -617,110 +642,129 @@ function RoutesContent() {
           polylinesRef.current.push(altBase)
         }
 
-        // Render color-coded segments for the route
-        if (sections.length > 0) {
-          let lastEndIndex = 0
+        // 1. Build precise traffic condition array for all vertices along this route
+        const pointConditions: ('fast' | 'moderate' | 'slow' | 'heavy')[] = new Array(pts.length).fill('fast')
 
-          sections.forEach((sec: any) => {
-            const startIndex = Math.max(0, sec.startPointIndex || 0)
-            const endIndex = Math.min(pts.length - 1, sec.endPointIndex || pts.length - 1)
+        // 1a. Extract TomTom traffic delay sections
+        const trafficSections = (route.sections || route.legs?.[0]?.sections || []).filter(
+          (s: any) =>
+            s.sectionType === 'TRAFFIC' ||
+            s.simpleCategory === 'JAM' ||
+            (s.delayInSeconds && s.delayInSeconds > 0)
+        )
 
-            // 1. Fast green segment
-            if (startIndex > lastEndIndex) {
-              const greenChunk = pts.slice(lastEndIndex, startIndex + 1)
-              if (greenChunk.length >= 2) {
-                const segLine = L.polyline(greenChunk, {
-                  color: getColorForCondition('fast'),
-                  weight: isSelected ? 8 : 5,
-                  opacity: isSelected ? 1.0 : 0.9,
-                  dashArray: isSelected ? undefined : '7, 7',
-                  lineCap: 'round',
-                }).addTo(map)
+        trafficSections.forEach((sec: any) => {
+          const sIdx = Math.max(0, sec.startPointIndex || 0)
+          const eIdx = Math.min(pts.length - 1, sec.endPointIndex || pts.length - 1)
+          const delaySec = sec.delayInSeconds || 0
+          let cond: 'moderate' | 'slow' | 'heavy' = 'moderate'
+          if (delaySec > 300 || sec.simpleCategory === 'JAM' || (sec.magnitudeOfDelay && sec.magnitudeOfDelay >= 3)) {
+            cond = 'heavy'
+          } else if (delaySec > 90 || (sec.magnitudeOfDelay && sec.magnitudeOfDelay >= 2)) {
+            cond = 'slow'
+          }
 
-                segLine.on('click', () => setSelectedRouteIdx(idx))
-                polylinesRef.current.push(segLine)
-              }
-            }
+          for (let i = sIdx; i <= eIdx; i++) {
+            pointConditions[i] = cond
+          }
+        })
 
-            // 2. Slowed traffic segment
-            if (endIndex > startIndex) {
-              const trafficChunk = pts.slice(startIndex, endIndex + 1)
-              if (trafficChunk.length >= 2) {
-                const delaySec = sec.delayInSeconds || 0
-                let segColor = getColorForCondition('moderate')
-                if (delaySec > 300 || sec.simpleCategory === 'JAM') {
-                  segColor = getColorForCondition('heavy')
-                } else if (delaySec > 120 || sec.magnitudeOfDelay >= 2) {
-                  segColor = getColorForCondition('slow')
-                }
-
-                const segLine = L.polyline(trafficChunk, {
-                  color: segColor,
-                  weight: isSelected ? 9 : 5.5,
-                  opacity: isSelected ? 1.0 : 0.95,
-                  dashArray: isSelected ? undefined : '7, 7',
-                  lineCap: 'round',
-                }).addTo(map)
-
-                segLine.on('click', () => setSelectedRouteIdx(idx))
-                polylinesRef.current.push(segLine)
-              }
-            }
-
-            lastEndIndex = endIndex
-          })
-
-          // Trailing fast segment
-          if (lastEndIndex < pts.length - 1) {
-            const trailingChunk = pts.slice(lastEndIndex)
-            if (trailingChunk.length >= 2) {
-              const segLine = L.polyline(trailingChunk, {
-                color: getColorForCondition('fast'),
-                weight: isSelected ? 8 : 5,
-                opacity: isSelected ? 1.0 : 0.9,
-                dashArray: isSelected ? undefined : '7, 7',
-                lineCap: 'round',
-              }).addTo(map)
-
-              segLine.on('click', () => setSelectedRouteIdx(idx))
-              polylinesRef.current.push(segLine)
+        // 1b. Mark Hotspots & Bottlenecks along route with high visibility corridor spans
+        const hotspots = fc?.hotspots || []
+        hotspots.forEach((hs: any) => {
+          let bestIdx = -1
+          let minDist = Infinity
+          for (let i = 0; i < pts.length; i++) {
+            const d = getDistanceMeters(pts[i][0], pts[i][1], hs.lat, hs.lon)
+            if (d < minDist) {
+              minDist = d
+              bestIdx = i
             }
           }
-        } else {
-          // Fallback segment division (Green fast outer, moderate/slow middle based on delay)
-          const chunkLen = Math.floor(pts.length / 3)
-          const part1 = pts.slice(0, chunkLen + 1)
-          const part2 = pts.slice(chunkLen, chunkLen * 2 + 1)
-          const part3 = pts.slice(chunkLen * 2)
 
-          const midColor =
-            delay > 8
-              ? getColorForCondition('heavy')
-              : delay > 3
-              ? getColorForCondition('slow')
-              : delay > 1
-              ? getColorForCondition('moderate')
-              : getColorForCondition('fast')
+          // If route passes near this bottleneck (within 2km corridor)
+          if (bestIdx !== -1 && minDist < 2000) {
+            const radius = Math.max(5, Math.min(25, Math.floor(pts.length * 0.07)))
+            const startI = Math.max(0, bestIdx - radius)
+            const endI = Math.min(pts.length - 1, bestIdx + radius)
+            const hsCond: 'moderate' | 'slow' | 'heavy' =
+              hs.severity === 'Severe' || hs.delay >= 8
+                ? 'heavy'
+                : hs.severity === 'Heavy' || hs.delay >= 4
+                ? 'slow'
+                : 'moderate'
 
-          const chunks = [
-            { pts: part1, color: getColorForCondition('fast') },
-            { pts: part2, color: midColor },
-            { pts: part3, color: getColorForCondition('fast') },
-          ]
+            for (let i = startI; i <= endI; i++) {
+              if (pointConditions[i] !== 'heavy') {
+                pointConditions[i] = hsCond
+              }
+            }
+          }
+        })
 
-          chunks.forEach((chk) => {
-            if (chk.pts.length >= 2) {
-              const segLine = L.polyline(chk.pts, {
-                color: chk.color,
-                weight: isSelected ? 8 : 5,
+        // 1c. Guarantee segment proportion alignment (distribute moderate/slow/heavy based on card metrics)
+        const delayVal = fc?.delay || 0
+        const seg = fc?.segmentProportions || { fast: 70, moderate: 20, slow: 10, heavy: 0 }
+        const nonFastCount = pointConditions.filter((c) => c !== 'fast').length
+
+        if (delayVal >= 1 || seg.moderate > 10 || seg.slow > 0 || seg.heavy > 0) {
+          const totalPoints = pts.length
+          const minNonFastNeeded = Math.max(
+            Math.floor((totalPoints * (100 - seg.fast)) / 100),
+            Math.min(totalPoints - 4, Math.floor(totalPoints * (delayVal >= 8 ? 0.45 : delayVal >= 3 ? 0.3 : 0.18)))
+          )
+
+          if (nonFastCount < minNonFastNeeded) {
+            // Apply congestion to central segments (between 20% and 80% along corridor)
+            const centerStart = Math.max(1, Math.floor(totalPoints * 0.2))
+            const centerEnd = Math.min(totalPoints - 2, Math.floor(totalPoints * 0.8))
+            const span = centerEnd - centerStart
+            const needed = minNonFastNeeded - nonFastCount
+
+            for (let k = 0; k < needed && k < span; k++) {
+              const targetI = Math.min(centerEnd, centerStart + Math.floor((k * span) / needed))
+              if (pointConditions[targetI] === 'fast') {
+                if (seg.heavy > 10 || delayVal >= 10) {
+                  pointConditions[targetI] = 'heavy'
+                } else if (seg.slow > 10 || delayVal >= 4) {
+                  pointConditions[targetI] = 'slow'
+                } else {
+                  pointConditions[targetI] = 'moderate'
+                }
+              }
+            }
+          }
+        }
+
+        // 2. Render color-coded contiguous polylines for each condition with smooth overlapping
+        let currentChunkStart = 0
+        let currentChunkCond = pointConditions[0]
+
+        for (let i = 1; i < pts.length; i++) {
+          const cond = pointConditions[i]
+          const isLast = i === pts.length - 1
+
+          if (cond !== currentChunkCond || isLast) {
+            const chunkEnd = isLast ? i : i
+            const chunkPts = pts.slice(currentChunkStart, chunkEnd + 1)
+
+            if (chunkPts.length >= 2) {
+              const segColor = getColorForCondition(currentChunkCond)
+              const segLine = L.polyline(chunkPts, {
+                color: segColor,
+                weight: isSelected ? 9 : 5.5,
                 opacity: isSelected ? 1.0 : 0.9,
-                dashArray: isSelected ? undefined : '7, 7',
                 lineCap: 'round',
+                lineJoin: 'round',
               }).addTo(map)
+
               segLine.on('click', () => setSelectedRouteIdx(idx))
               polylinesRef.current.push(segLine)
             }
-          })
+
+            currentChunkStart = i
+            currentChunkCond = cond
+          }
         }
 
         // Invisible broader hover/click polyline across full route
@@ -998,7 +1042,7 @@ function RoutesContent() {
   }, [routes, selectedRouteIdx, showHeatmap, showFlow, forecasts, renderMapLayers])
 
   // Handle Layer Mode Switching
-  const handleLayerModeChange = (mode: 'hybrid' | 'heatmap' | 'flow') => {
+  const handleLayerModeChange = (mode: 'hybrid' | 'heatmap') => {
     setMapLayerMode(mode)
     const map = mapRef.current
     if (!map) return
@@ -1012,11 +1056,6 @@ function RoutesContent() {
       setShowHeatmap(true)
       setShowFlow(false)
       if (flowTileRef.current) map.removeLayer(flowTileRef.current)
-    } else if (mode === 'flow') {
-      setShowHeatmap(false)
-      setShowFlow(true)
-      if (flowTileRef.current) flowTileRef.current.addTo(map)
-      if (heatLayerRef.current) map.removeLayer(heatLayerRef.current)
     }
   }
 
@@ -1459,7 +1498,6 @@ function RoutesContent() {
                 const summary = route.summary || {}
                 const etaMins = Math.round((summary.travelTimeInSeconds || 0) / 60)
                 const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
-                const fuelEst = Math.max(25, Math.round(parseFloat(distKm) * 7.5))
                 const fc = forecasts[idx]
                 const isSelected = selectedRouteIdx === idx
                 const isTopRoute = idx === 0
@@ -1501,7 +1539,7 @@ function RoutesContent() {
                       <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
                     </div>
 
-                    {/* Large Duration Text & Distance / Fuel Details */}
+                    {/* Large Duration Text, Distance & Fuel Cost Details */}
                     <div className="mt-2.5">
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-3xl font-black text-slate-900 tracking-tight leading-none">
@@ -1509,11 +1547,16 @@ function RoutesContent() {
                         </span>
                         <span className="text-base font-bold text-slate-500">min</span>
                       </div>
-                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mt-1">
+                      <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mt-1.5 flex-wrap">
                         <span>{distKm} km</span>
                         <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <Fuel size={12} className="text-slate-400" /> ₹{fuelEst} est. fuel
+                        <span
+                          title={`Fuel required: ${(parseFloat(distKm) / userMileage).toFixed(2)}L @ ₹106.50/L with ${userMileage} km/L mileage`}
+                          className="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200/90 text-indigo-700 font-bold px-2 py-0.5 rounded-md shadow-2xs"
+                        >
+                          <Fuel size={12} className="text-indigo-600" />
+                          <span>{calculateFuelCost(parseFloat(distKm) || 0, userMileage, 106.50)} fuel</span>
+                          <span className="text-[10px] font-semibold text-indigo-400">({userMileage} km/L)</span>
                         </span>
                       </div>
                     </div>
@@ -1638,7 +1681,7 @@ function RoutesContent() {
           <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col relative min-h-[580px] lg:h-[calc(100vh-210px)] sticky top-36">
             {/* Floating Header Toolbar */}
             <div className="absolute top-3.5 inset-x-3.5 z-[1000] flex items-center justify-between gap-2 pointer-events-none flex-wrap">
-              {/* Layer Mode Selector (Hybrid, Congestion Heatmap, Live Flow) */}
+              {/* Layer Mode Selector (Hybrid & Congestion Heatmap) */}
               <div className="bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-xl p-1 flex items-center gap-1 shadow-md pointer-events-auto">
                 <button
                   type="button"
@@ -1662,18 +1705,6 @@ function RoutesContent() {
                   }`}
                 >
                   <Flame size={13} className="text-amber-400" /> Heatmap
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleLayerModeChange('flow')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    mapLayerMode === 'flow'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <Gauge size={13} className="text-emerald-400" /> Live Flow
                 </button>
               </div>
 
