@@ -107,14 +107,10 @@ export default function AdminTrafficMapPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" /> Dashboard
-            </Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-xs font-bold text-slate-900">10km Grid Traffic Intelligence</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ● Live City Surveillance
+            </span>
+            <span className="text-xs font-bold text-slate-700">10km Grid Traffic Intelligence</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-1">
             Live 10km Congestion Grid & Location Intelligence

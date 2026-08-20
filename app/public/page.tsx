@@ -457,7 +457,7 @@ export default function PublicHomePage() {
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           Flowcast · Smart Traffic Congestion Management · Refreshed live with TomTom APIs
           {' '}<span style={{ color: '#c8a97e' }}>·</span>{' '}
-          <Link href="/admin" style={{ color: '#a67c52', textDecoration: 'none', fontWeight: 600 }}>City Planner Portal</Link>
+          <Link href="/admin/traffic" style={{ color: '#a67c52', textDecoration: 'none', fontWeight: 600 }}>City Planner Portal</Link>
         </div>
       </footer>
     </div>
