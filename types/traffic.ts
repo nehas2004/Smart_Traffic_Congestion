@@ -120,3 +120,12 @@ export interface ReportedIncident {
   active: boolean
 }
 
+export interface ResolvedLocation {
+  latitude: number
+  longitude: number
+  roadName: string
+  locality: string
+  city: string
+  corridor_name: string
+}
+

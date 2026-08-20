@@ -6,10 +6,9 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Waypoints, Map, BarChart2, ShieldAlert, LogOut, User } from 'lucide-react'
 import { getStoredUser, signOutUser, FlowcastUser } from '@/lib/auth'
 
-const links = [
-  { href: '/routes',    label: 'Route Options', icon: Waypoints },
-  { href: '/map',       label: 'Live Map',      icon: Map },
-  { href: '/dashboard', label: 'Analytics',     icon: BarChart2 },
+const navLinks = [
+  { href: '/routes', label: 'Route Options', icon: Waypoints },
+  { href: '/map', label: 'Live Map', icon: Map },
 ]
 
 export function Nav() {
@@ -103,7 +102,7 @@ export function Nav() {
             <span className="hidden xs:inline">Logout</span>
           </button>
         </div>
-      </div>
-    </header>
+      )}
+    </>
   )
 }

@@ -61,7 +61,7 @@ export default function AdminForecastPage() {
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [horizon, setHorizon] = useState<'15m' | '1h' | '3h' | '6h' | '10h'>('1h')
 
-  // Read stored active city on mount
+  // Read stored active city on mount and listen to global city changes
   useEffect(() => {
     try {
       const stored = localStorage.getItem('planner_active_city')
@@ -69,20 +69,33 @@ export default function AdminForecastPage() {
         const parsed = JSON.parse(stored)
         if (parsed.lat && parsed.lon) {
           setSelectedCity({
-            name: parsed.name || parsed.cityName || 'Selected City',
+            name: parsed.cityName || parsed.name || 'Selected City',
             lat: parsed.lat,
             lon: parsed.lon,
           })
         }
       }
     } catch (_) {}
+
+    const onCityChange = (e: any) => {
+      if (e.detail && e.detail.lat && e.detail.lon) {
+        setSelectedCity({
+          name: e.detail.cityName || e.detail.name || 'Selected City',
+          lat: e.detail.lat,
+          lon: e.detail.lon,
+        })
+      }
+    }
+
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
   }, [])
 
   // Fetch real-time live TomTom telemetry for active city
   const fetchLiveTelemetry = useCallback(async (cityObj = selectedCity) => {
     setIsRefreshing(true)
     try {
-      const url = `/api/admin/corridors?lat=${cityObj.lat}&lon=${cityObj.lon}`
+      const url = `/api/admin/corridors?lat=${cityObj.lat}&lon=${cityObj.lon}&city=${encodeURIComponent(cityObj.name)}`
       const res = await fetch(url, { cache: 'no-store' })
       if (res.ok) {
         const data: CorridorDetail[] = await res.json()
