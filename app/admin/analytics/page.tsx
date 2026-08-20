@@ -1,7 +1,7 @@
 'use client'
 
 import { AnalyticsPanel } from '@/components/admin/AnalyticsPanel'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminAnalyticsPage() {

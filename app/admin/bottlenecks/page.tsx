@@ -60,7 +60,7 @@ export default function AdminBottlenecksPage() {
             Junction Bottlenecks & Severity Ranking
           </h1>
           <p className="mt-0.5 text-xs text-[#9e9189]">
-            Consuming pre-ranked bottleneck corridor data from backend
+            Real-time bottleneck surveillance, corridor delays, and predictive congestion rankings
           </p>
         </div>
 
@@ -69,7 +69,7 @@ export default function AdminBottlenecksPage() {
           onClick={loadData}
           className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-xs hover:bg-[#faf8f5] cursor-pointer"
         >
-          <RefreshCw className="size-3.5 text-[#a67c52]" />
+          <RefreshCw className={`size-3.5 text-[#a67c52] ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
