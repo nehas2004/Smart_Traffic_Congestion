@@ -12,8 +12,8 @@ export default function AdminAnalyticsPage() {
         <div>
           <div className="flex items-center gap-2">
             <Link
-              href="/admin"
-              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
+              href="/admin/traffic"
+              className="flex items-center gap-1 text-xs font-bold text-[#9e9189] hover:text-[#2c2825]"
             >
               <ArrowLeft className="size-3.5" /> Overview
             </Link>
@@ -32,7 +32,7 @@ export default function AdminAnalyticsPage() {
           href="/admin/traffic"
           className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 hover:bg-emerald-700 transition-all cursor-pointer"
         >
-          View Congestion Map
+          View Overview Map
         </Link>
       </div>
 

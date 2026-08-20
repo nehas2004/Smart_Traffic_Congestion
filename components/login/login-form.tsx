@@ -74,7 +74,7 @@ export function LoginForm() {
 
         if (data.session) {
           // If auto-confirm is enabled and we get a session immediately
-          router.push(role === 'commuter' ? '/routes' : '/admin')
+          router.push(role === 'commuter' ? '/routes' : '/admin/traffic')
         } else {
           setSuccessMsg('Account created successfully! Please check your email to verify and activate your account.')
           setLoading(false)
@@ -122,7 +122,7 @@ export function LoginForm() {
             localStorage.setItem('flowcast_auth_user', JSON.stringify(userObj))
           } catch (_) {}
         }
-        router.push(finalRole === 'commuter' ? '/routes' : '/admin')
+        router.push(finalRole === 'commuter' ? '/routes' : '/admin/traffic')
       }
     } catch (err: any) {
       setError(err?.message || 'An unexpected error occurred.')

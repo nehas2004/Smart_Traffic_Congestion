@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server'
 import { SeverityLevel } from '@/types/traffic'
+import { reverseGeocodeLocation, getPresetRoadNames } from '@/lib/reverse-geocode'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const centerLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 10.0601
-  const centerLon = searchParams.get('lon') ? parseFloat(searchParams.get('lon')!) : 76.6214
+  const centerLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 10.0033
+  const centerLon = searchParams.get('lon') ? parseFloat(searchParams.get('lon')!) : 76.2996
   const cityName = searchParams.get('city') || searchParams.get('name') || 'Active City Sector'
 
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
+  const presetRoads = getPresetRoadNames(cityName)
 
   // Time-of-day baseline lookup from historical model feature distribution
   const now = new Date()
@@ -16,26 +18,37 @@ export async function GET(req: Request) {
   const typicalBaseline = isPeakHour ? 41.5 : 37.2
 
   // 1. Grid sample points within 10km radius
-  const samplePoints = [
-    { id: 'corr-01', lat: centerLat, lon: centerLon, name: `${cityName} Central Arterial` },
-    { id: 'corr-02', lat: centerLat + 0.038, lon: centerLon + 0.018, name: `${cityName} North Bypass` },
-    { id: 'corr-03', lat: centerLat - 0.042, lon: centerLon - 0.022, name: `${cityName} South Feeder` },
-    { id: 'corr-04', lat: centerLat + 0.015, lon: centerLon + 0.055, name: `${cityName} East Express Link` },
-    { id: 'corr-05', lat: centerLat - 0.025, lon: centerLon - 0.058, name: `${cityName} West Corridor` },
+  const sampleOffsets = [
+    { dLat: 0.0, dLon: 0.0 },
+    { dLat: 0.035, dLon: 0.02 },
+    { dLat: -0.035, dLon: -0.02 },
+    { dLat: 0.02, dLon: 0.045 },
+    { dLat: -0.025, dLon: -0.045 },
   ]
 
   let totalCongestion = 0
   let maxDelayMins = 3
-  let peakCorridorName = `${cityName} Central Arterial`
+  let peakCorridorName = presetRoads[0] ? `${presetRoads[0]}, ${cityName}` : `${cityName} Central Corridor`
   let criticalBottleneckCount = 0
   let validPointsCount = 0
   let avgConfidenceSum = 0
 
-  // 2. Query Live TomTom Flow & Open-Meteo Weather for points
+  // 2. Query Live TomTom Flow for points
   try {
     const liveResults = await Promise.all(
-      samplePoints.map(async (pt) => {
-        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?point=${pt.lat},${pt.lon}&key=${KEY}&unit=KMPH`
+      sampleOffsets.map(async (offset, idx) => {
+        const ptLat = centerLat + offset.dLat
+        const ptLon = centerLon + offset.dLon
+        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?point=${ptLat},${ptLon}&key=${KEY}&unit=KMPH`
+
+        let resolvedName = presetRoads[idx] ? `${presetRoads[idx]}, ${cityName}` : `${cityName} Corridor ${idx + 1}`
+        try {
+          const resolved = await reverseGeocodeLocation(ptLat, ptLon, KEY)
+          if (resolved.corridor_name && !resolved.corridor_name.includes('Road Sector')) {
+            resolvedName = resolved.corridor_name
+          }
+        } catch (_) {}
+
         try {
           const res = await fetch(url, { next: { revalidate: 30 } })
           if (res.ok) {
@@ -58,7 +71,7 @@ export async function GET(req: Request) {
             }
 
             return {
-              name: pt.name,
+              name: resolvedName,
               congestionPct,
               delayMins,
               severity,
@@ -72,7 +85,7 @@ export async function GET(req: Request) {
         const simCongestion = isPeakHour ? 48 + (pt.lat * 10) % 15 : 32 + (pt.lat * 10) % 12
         const sev: SeverityLevel = isPeakHour ? 'heavy' : 'moderate'
         return {
-          name: pt.name,
+          name: resolvedName,
           congestionPct: Math.round(simCongestion),
           delayMins: isPeakHour ? 6 : 3,
           severity: sev,
@@ -140,7 +153,7 @@ export async function GET(req: Request) {
     peak_corridor_name: peakCorridorName,
     forecast_horizon_minutes: 60,
     critical_bottlenecks: criticalBottleneckCount,
-    total_monitored_hotspots: samplePoints.length,
+    total_monitored_hotspots: sampleOffsets.length,
     model_performance: mlModelMetrics,
     decision_queue: {
       active_recommendations: activeRecommendationsCount,
