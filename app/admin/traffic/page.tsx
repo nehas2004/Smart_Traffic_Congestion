@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
 import { TrafficMapView } from '@/components/admin/traffic-map-view'
+import { ActiveIncidentsPanel } from '@/components/admin/active-incidents-panel'
 import { ReportIncidentModal } from '@/components/admin/report-incident-modal'
 import {
   fetchCurrentTraffic,
@@ -13,7 +15,7 @@ import {
   BottleneckItem,
   TrafficRecommendation,
 } from '@/types/traffic'
-import { RefreshCw, Flame } from 'lucide-react'
+import { RefreshCw, Flame, ArrowLeft } from 'lucide-react'
 
 export default function AdminTrafficMapPage() {
   const [corridors, setCorridors] = useState<CorridorDetail[]>([])
@@ -105,14 +107,10 @@ export default function AdminTrafficMapPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <Link
-              href="/admin"
-              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
-            >
-              <ArrowLeft className="size-3.5" /> Dashboard
-            </Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-xs font-bold text-slate-900">10km Grid Traffic Intelligence</span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ● Live City Surveillance
+            </span>
+            <span className="text-xs font-bold text-slate-700">10km Grid Traffic Intelligence</span>
           </div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-1">
             Live 10km Congestion Grid & Location Intelligence
@@ -157,23 +155,6 @@ export default function AdminTrafficMapPage() {
 
       {/* ACTIVE REPORTED LOCAL DISRUPTIONS PANEL */}
       <ActiveIncidentsPanel onIncidentCancelled={() => loadData()} />
-
-      {/* CORRIDOR CONTEXT DECISION SUPPORT */}
-      <div className="space-y-3">
-        <h2 className="text-base font-extrabold text-slate-900">
-          Active Corridor Decision Support
-        </h2>
-        {selectedRecommendation ? (
-          <DecisionSupportCard
-            recommendation={selectedRecommendation}
-            onDecision={handleDecision}
-          />
-        ) : (
-          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
-            No pending action items for this corridor.
-          </div>
-        )}
-      </div>
 
       {/* Report Incident Modal */}
       <ReportIncidentModal

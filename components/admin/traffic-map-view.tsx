@@ -19,6 +19,9 @@ import {
   Flame,
   ShieldAlert,
   Building2,
+  Search,
+  Crosshair,
+  MapPin,
 } from 'lucide-react'
 
 interface TrafficMapViewProps {
@@ -77,6 +80,11 @@ export function TrafficMapView({
     propCoords ? [propCoords.lat, propCoords.lon] : [10.0033, 76.2996]
   )
 
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
   const [incidents, setIncidents] = useState<ReportedIncident[]>([])
   const [showRecommendations, setShowRecommendations] = useState(true)
   const [activeCorridor, setActiveCorridor] = useState<CorridorDetail | null>(null)
@@ -85,6 +93,53 @@ export function TrafficMapView({
   const [mapLayerMode, setMapLayerMode] = useState<'hybrid' | 'heatmap' | 'flow'>('hybrid')
 
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
+
+  const handleSelectLocation = (lat: number, lon: number, name: string) => {
+    setCurrentCityName(name)
+    setCurrentCenter([lat, lon])
+    setSearchQuery('')
+    setShowSuggestions(false)
+    try {
+      localStorage.setItem('planner_active_city', JSON.stringify({ lat, lon, name, cityName: name }))
+    } catch (_) {}
+    window.dispatchEvent(new CustomEvent('planner_city_changed', { detail: { lat, lon, name, cityName: name } }))
+    if (mapRef.current) {
+      mapRef.current.flyTo([lat, lon], 13, { duration: 1.0 })
+    }
+  }
+
+  const handleSearchInput = async (val: string) => {
+    setSearchQuery(val)
+    if (!val || val.trim().length < 2) {
+      setSearchSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    setIsSearching(true)
+    try {
+      const res = await fetch(`/api/admin/geocode?query=${encodeURIComponent(val.trim())}`)
+      if (res.ok) {
+        const data = await res.json()
+        setSearchSuggestions(data.results || [])
+        setShowSuggestions(true)
+      }
+    } catch (e) {
+      console.warn('Error fetching geocode:', e)
+    } finally {
+      setIsSearching(false)
+    }
+  }
+
+  const handleSearchSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!searchQuery.trim()) return
+    if (searchSuggestions.length > 0) {
+      const first = searchSuggestions[0]
+      handleSelectLocation(first.lat, first.lon, first.name)
+    } else {
+      await handleSearchInput(searchQuery)
+    }
+  }
 
   // Sync with props when parent updates
   useEffect(() => {
@@ -695,124 +750,7 @@ export function TrafficMapView({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* ── CITY PLANNER DYNAMIC SEARCH & LIVE AREA CONTROLLER ── */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
-              <Compass className="size-4" />
-            </div>
-            <div>
-              <h3 className="text-sm font-extrabold text-slate-900">
-                Dynamic City & Location Surveillance
-              </h3>
-              <p className="text-[11px] text-slate-500">
-                Search any Kerala municipality, road, or junction for live TomTom flow telemetry & bottlenecks
-              </p>
-            </div>
-          </div>
-
-          {/* Quick preset city chips */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-              Popular:
-            </span>
-            {PRESET_CITIES.map((city) => {
-              const isCurrent = currentCityName.toLowerCase().includes(city.name.toLowerCase())
-              return (
-                <button
-                  key={city.name}
-                  type="button"
-                  onClick={() => handleSelectLocation(city.lat, city.lon, city.name)}
-                  className={`rounded-full px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
-                    isCurrent
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
-                >
-                  {city.name}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Search Bar Input */}
-        <form onSubmit={handleSearchSubmit} className="relative">
-          <div className="relative flex items-center">
-            <Search className="absolute left-3.5 size-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => handleSearchInput(e.target.value)}
-              onFocus={() => {
-                if (searchSuggestions.length > 0) setShowSuggestions(true)
-              }}
-              placeholder="Search any town, city, or junction (e.g. Kothamangalam, Munnar, Aluva, Kaloor, Thrissur)..."
-              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-24 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('')
-                  setSearchSuggestions([])
-                  setShowSuggestions(false)
-                }}
-                className="absolute right-20 text-slate-400 hover:text-slate-900"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={isSearching || isFetchingTraffic}
-              className="absolute right-1.5 flex h-8 items-center gap-1 rounded-lg bg-emerald-600 px-3 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
-            >
-              {isSearching || isFetchingTraffic ? (
-                <RefreshCw className="size-3.5 animate-spin" />
-              ) : (
-                <>
-                  <Crosshair className="size-3.5" />
-                  <span>Inspect</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Autocomplete suggestions dropdown */}
-          {showSuggestions && searchSuggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-12 z-[500] rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-              <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Matching Locations & Municipalities
-              </div>
-              {searchSuggestions.map((item, idx) => {
-                const title = item.poi?.name || item.address?.freeformAddress || 'Location'
-                const subtitle = item.address?.municipality || item.address?.countrySubdivision || 'India'
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectLocation(item.position.lat, item.position.lon, title)}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="size-3.5 text-emerald-600 shrink-0" />
-                      <div>
-                        <p className="font-bold text-slate-900">{title}</p>
-                        <p className="text-[11px] text-slate-400">{subtitle}</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                      {item.position.lat.toFixed(3)}, {item.position.lon.toFixed(3)}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </form>
-      </div>
+      {/* ── TOP INTERACTIVE MAP CONTAINER ── */}
 
       {/* ── MAP CONTAINER & LOCATION INTELLIGENCE PANEL ── */}
       <div className="relative flex h-[620px] w-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm lg:flex-row">
@@ -885,7 +823,7 @@ export function TrafficMapView({
               <span>Show All on Map</span>
             </button>
 
-            {isFetchingTraffic && (
+            {isLoading && (
               <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                 <RefreshCw className="size-3.5 animate-spin" /> Fetching Live Grid...
               </span>
