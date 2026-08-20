@@ -15,14 +15,23 @@ export default function SearchPage() {
   const router = useRouter()
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || ''
 
+  const fromSelectedRef = useRef(false)
+  const toSelectedRef = useRef(false)
+
   useEffect(() => {
     // Restore last search values
     try {
       const saved = localStorage.getItem('flowcast_route')
       if (saved) {
         const p = JSON.parse(saved)
-        if (p.fromName && p.fromName !== 'Origin') setFrom(p.fromName)
-        if (p.toName && p.toName !== 'Destination') setTo(p.toName)
+        if (p.fromName && p.fromName !== 'Origin') {
+          fromSelectedRef.current = true
+          setFrom(p.fromName)
+        }
+        if (p.toName && p.toName !== 'Destination') {
+          toSelectedRef.current = true
+          setTo(p.toName)
+        }
       }
     } catch (_) {}
     const tick = () => setTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }))
@@ -37,14 +46,23 @@ export default function SearchPage() {
 
   const geocode = async (query: string) => {
     if(query.length < 3) return []
-    const r = await fetch(
-      `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?key=${KEY}&countrySet=IN&limit=5`
-    )
-    const d = await r.json()
-    return d.results || []
+    try {
+      const r = await fetch(
+        `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?key=${KEY}&countrySet=IN&limit=5`
+      )
+      const d = await r.json()
+      return d.results || []
+    } catch (_) {
+      return []
+    }
   }
 
   useEffect(() => {
+    if (fromSelectedRef.current) {
+      fromSelectedRef.current = false
+      setFromSuggestions([])
+      return
+    }
     const t = setTimeout(async () => {
       setFromSuggestions(await geocode(from))
     }, 350)
@@ -52,6 +70,11 @@ export default function SearchPage() {
   }, [from])
 
   useEffect(() => {
+    if (toSelectedRef.current) {
+      toSelectedRef.current = false
+      setToSuggestions([])
+      return
+    }
     const t = setTimeout(async () => {
       setToSuggestions(await geocode(to))
     }, 350)
@@ -60,11 +83,13 @@ export default function SearchPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setFromSuggestions([])
+    setToSuggestions([])
     if(!from || !to) return
     setLoading(true)
     const [fr, tr] = await Promise.all([
-      fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(from)}.json?key=${KEY}&limit=1`).then(r=>r.json()),
-      fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(to)}.json?key=${KEY}&limit=1`).then(r=>r.json()),
+      fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(from)}.json?key=${KEY}&limit=1`).then(r=>r.json()).catch(()=>({})),
+      fetch(`https://api.tomtom.com/search/2/search/${encodeURIComponent(to)}.json?key=${KEY}&limit=1`).then(r=>r.json()).catch(()=>({})),
     ])
     const fp = fr.results?.[0]?.position
     const tp = tr.results?.[0]?.position
@@ -110,7 +135,7 @@ export default function SearchPage() {
                     letterSpacing:'0.08em', marginBottom:4 }}>From</div>
                   <input
                     value={from}
-                    onChange={e => setFrom(e.target.value)}
+                    onChange={e => { fromSelectedRef.current = false; setFrom(e.target.value) }}
                     placeholder="Enter origin, e.g. Kothamangalam"
                     style={{ width:'100%', border:'none', outline:'none', fontSize:15,
                       color:'#2c2825', background:'transparent', fontWeight:500 }}
@@ -123,7 +148,11 @@ export default function SearchPage() {
                   background:'white', border:'1px solid #e8e0d5', borderTop:'none',
                   borderRadius:'0 0 12px 12px', boxShadow:'0 8px 24px rgba(44,40,37,0.1)' }}>
                   {fromSuggestions.map((s, i) => (
-                    <div key={i} onClick={() => { setFrom(s.address?.freeformAddress || s.poi?.name || ''); setFromSuggestions([]) }}
+                    <div key={i} onClick={() => {
+                      fromSelectedRef.current = true
+                      setFrom(s.address?.freeformAddress || s.poi?.name || '')
+                      setFromSuggestions([])
+                    }}
                       style={{ padding:'12px 20px', cursor:'pointer', fontSize:13, color:'#2c2825',
                         borderBottom: i < fromSuggestions.length-1 ? '1px solid #f5f2ee' : 'none' }}
                       onMouseEnter={e => (e.currentTarget.style.background='#faf8f5')}
@@ -148,7 +177,7 @@ export default function SearchPage() {
                     letterSpacing:'0.08em', marginBottom:4 }}>To</div>
                   <input
                     value={to}
-                    onChange={e => setTo(e.target.value)}
+                    onChange={e => { toSelectedRef.current = false; setTo(e.target.value) }}
                     placeholder="Enter destination"
                     style={{ width:'100%', border:'none', outline:'none', fontSize:15,
                       color:'#2c2825', background:'transparent', fontWeight:500 }}
@@ -160,7 +189,11 @@ export default function SearchPage() {
                   background:'white', border:'1px solid #e8e0d5', borderTop:'none',
                   borderRadius:'0 0 12px 12px', boxShadow:'0 8px 24px rgba(44,40,37,0.1)' }}>
                   {toSuggestions.map((s, i) => (
-                    <div key={i} onClick={() => { setTo(s.address?.freeformAddress || s.poi?.name || ''); setToSuggestions([]) }}
+                    <div key={i} onClick={() => {
+                      toSelectedRef.current = true
+                      setTo(s.address?.freeformAddress || s.poi?.name || '')
+                      setToSuggestions([])
+                    }}
                       style={{ padding:'12px 20px', cursor:'pointer', fontSize:13, color:'#2c2825',
                         borderBottom: i < toSuggestions.length-1 ? '1px solid #f5f2ee' : 'none' }}
                       onMouseEnter={e => (e.currentTarget.style.background='#faf8f5')}

@@ -21,7 +21,7 @@ const ys = Array.from({ length: ROWS + 1 }, (_, i) => PY + i * CH)
 // City blocks — very dark warm fills
 const BLOCK_COLORS = ['#221e1a', '#201c18', '#231f1b', '#1f1b17', '#242019']
 const r0 = seeded(77)
-const blocks = []
+const blocks: { x: number; y: number; w: number; h: number; color: string }[] = []
 for (let r = 0; r < ROWS; r++)
   for (let c = 0; c < COLS; c++)
     blocks.push({ x: xs[c]+1, y: ys[r]+1, w: CW-2, h: CH-2, color: BLOCK_COLORS[Math.floor(r0() * BLOCK_COLORS.length)] })

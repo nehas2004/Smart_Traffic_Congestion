@@ -6,10 +6,26 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
+# Environment variables — NEVER commit real keys
+.env
+.env.*
 .env*.local
+!.env.example
 
 # Common ignores
 node_modules
 .next/
 .DS_Store
+
+# Python & Database ignores
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+venv/
+.venv/
+
+# Setup script contains real API keys — share directly, not via git
+setup-env.ps1
+*.tsbuildinfo
