@@ -12,7 +12,7 @@ export default function AdminAnalyticsPage() {
         <div>
           <div className="flex items-center gap-2">
             <Link
-              href="/admin"
+              href="/admin/traffic"
               className="flex items-center gap-1 text-xs font-bold text-[#9e9189] hover:text-[#2c2825]"
             >
               <ArrowLeft className="size-3.5" /> Overview
@@ -32,7 +32,7 @@ export default function AdminAnalyticsPage() {
           href="/admin/traffic"
           className="flex items-center gap-1.5 rounded-xl bg-[#2c2825] px-4 py-2 text-xs font-bold text-[#faf8f5] shadow-sm hover:bg-[#1e1b18]"
         >
-          View Congestion Map
+          View Overview Map
         </Link>
       </div>
 

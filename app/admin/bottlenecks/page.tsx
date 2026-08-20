@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { BottleneckPanel } from '@/components/admin/BottleneckPanel'
 import { LocationIntelPanel } from '@/components/admin/LocationIntelPanel'
 import { fetchBottlenecks, fetchCurrentTraffic, fetchEventImpact } from '@/lib/admin-api'
 import { BottleneckItem, CorridorDetail, EventImpact } from '@/types/traffic'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { ArrowLeft, RefreshCw, Building2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminBottlenecksPage() {
@@ -13,33 +13,58 @@ export default function AdminBottlenecksPage() {
   const [corridors, setCorridors] = useState<CorridorDetail[]>([])
   const [selectedCorridorId, setSelectedCorridorId] = useState<string>('corr-01')
   const [eventImpact, setEventImpact] = useState<EventImpact | null>(null)
+  const [activeCityName, setActiveCityName] = useState('Kochi (Ernakulam)')
   const [loading, setLoading] = useState(true)
 
-  async function loadData() {
+  const loadData = useCallback(async (sectorOverride?: { lat: number; lon: number; name?: string; cityName?: string }) => {
     setLoading(true)
+    let sec = sectorOverride
+    if (!sec) {
+      try {
+        const stored = localStorage.getItem('planner_active_city')
+        if (stored) sec = JSON.parse(stored)
+      } catch (_) {}
+    }
+
+    if (sec) {
+      setActiveCityName(sec.cityName || sec.name || 'Active City Sector')
+    }
+
     try {
       const [bData, cData, eData] = await Promise.all([
-        fetchBottlenecks(),
-        fetchCurrentTraffic(),
+        fetchBottlenecks(sec ? { lat: sec.lat, lon: sec.lon, name: sec.cityName || sec.name || 'City' } : undefined),
+        fetchCurrentTraffic(sec ? { lat: sec.lat, lon: sec.lon, name: sec.cityName || sec.name || 'City' } : undefined),
         fetchEventImpact('evt-101'),
       ])
       setBottlenecks(bData)
       setCorridors(cData as CorridorDetail[])
       if (eData) setEventImpact(eData)
+      if (cData.length > 0) {
+        setSelectedCorridorId(cData[0].corridor_id)
+      }
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadData()
-  }, [])
+
+    const onCityChange = (e: any) => {
+      if (e.detail) {
+        loadData(e.detail)
+      }
+    }
+
+    window.addEventListener('planner_city_changed', onCityChange)
+    return () => window.removeEventListener('planner_city_changed', onCityChange)
+  }, [loadData])
 
   const selectedCorridor =
     corridors.find((c) => c.corridor_id === selectedCorridorId) || corridors[0] || null
 
   const selectedBottleneck =
-    bottlenecks.find((b) => b.corridor_id === selectedCorridorId) || null
+    bottlenecks.find((c) => c.corridor_id === selectedCorridorId) || null
 
   return (
     <main className="mx-auto max-w-7xl px-6 py-8 space-y-8">
@@ -48,7 +73,7 @@ export default function AdminBottlenecksPage() {
         <div>
           <div className="flex items-center gap-2">
             <Link
-              href="/admin"
+              href="/admin/traffic"
               className="flex items-center gap-1 text-xs font-bold text-[#9e9189] hover:text-[#2c2825]"
             >
               <ArrowLeft className="size-3.5" /> Overview
@@ -56,17 +81,24 @@ export default function AdminBottlenecksPage() {
             <span className="text-xs text-[#e8e0d5]">/</span>
             <span className="text-xs font-bold text-[#a67c52]">Bottlenecks Surveillance</span>
           </div>
-          <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825]">
-            Junction Bottlenecks & Severity Ranking
-          </h1>
+          <div className="flex flex-wrap items-center gap-2.5 mt-1">
+            <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
+              Junction Bottlenecks & Severity Ranking
+            </h1>
+            <div className="flex items-center gap-1.5 rounded-xl border border-blue-600/30 bg-blue-50 px-2.5 py-0.5 text-xs font-black text-blue-950">
+              <Building2 className="size-3 text-blue-600" />
+              <span>{activeCityName}</span>
+            </div>
+          </div>
           <p className="mt-0.5 text-xs text-[#9e9189]">
-            Real-time bottleneck surveillance, corridor delays, and predictive congestion rankings
+            Real-time bottleneck surveillance, corridor delays, and predictive congestion rankings for {activeCityName}
           </p>
         </div>
 
         <button
           type="button"
-          onClick={loadData}
+          onClick={() => loadData()}
+          disabled={loading}
           className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-xs hover:bg-[#faf8f5] cursor-pointer"
         >
           <RefreshCw className={`size-3.5 text-[#a67c52] ${loading ? 'animate-spin' : ''}`} />

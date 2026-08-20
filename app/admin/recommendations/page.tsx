@@ -112,7 +112,7 @@ export default function RecommendationsPage() {
             </div>
 
             <h1 className="mt-1 text-2xl font-black tracking-tight text-[#2c2825] lg:text-3xl">
-              AI Traffic Recommendations
+              Decision Support & AI Recommendations
             </h1>
 
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[#6b625b]">

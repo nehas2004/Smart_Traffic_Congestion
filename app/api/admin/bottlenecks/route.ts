@@ -1,26 +1,29 @@
 import { NextResponse } from 'next/server'
 import { BottleneckItem, SeverityLevel } from '@/types/traffic'
+import { reverseGeocodeLocation, getPresetRoadNames } from '@/lib/reverse-geocode'
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const centerLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 10.0601
-  const centerLon = searchParams.get('lon') ? parseFloat(searchParams.get('lon')!) : 76.6214
+  const centerLat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 10.0033
+  const centerLon = searchParams.get('lon') ? parseFloat(searchParams.get('lon')!) : 76.2996
+  const cityName = searchParams.get('city') || searchParams.get('name') || ''
 
   const KEY = process.env.NEXT_PUBLIC_TOMTOM_API_KEY || 'QonqKFs3CHNI0GUCu7NhJ4tM9vuzE1yq'
+  const presetRoads = getPresetRoadNames(cityName)
 
-  // Points within 10km radius
-  const samplePoints = [
-    { id: 'bn-01', lat: centerLat, lon: centerLon },
-    { id: 'bn-02', lat: centerLat + 0.038, lon: centerLon + 0.018 },
-    { id: 'bn-03', lat: centerLat - 0.042, lon: centerLon - 0.022 },
-    { id: 'bn-04', lat: centerLat + 0.015, lon: centerLon + 0.055 },
-    { id: 'bn-05', lat: centerLat - 0.025, lon: centerLon - 0.058 },
-  ]
+  // 10km radial sample points
+  const sampleAngles = [0, 60, 120, 180, 240, 300]
+  const sampleDists = [0.0, 0.035, 0.05, 0.045, 0.03, 0.06]
 
   try {
     const items = await Promise.all(
-      samplePoints.map(async (pt, idx) => {
-        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?point=${pt.lat},${pt.lon}&key=${KEY}&unit=KMPH`
+      sampleAngles.map(async (angle, idx) => {
+        const rad = (angle * Math.PI) / 180
+        const dist = sampleDists[idx]
+        const ptLat = centerLat + Math.cos(rad) * dist
+        const ptLon = centerLon + Math.sin(rad) * dist
+
+        const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json?point=${ptLat},${ptLon}&key=${KEY}&unit=KMPH`
         try {
           const res = await fetch(url, { next: { revalidate: 30 } })
           if (res.ok) {
@@ -37,33 +40,43 @@ export async function GET(req: Request) {
 
             const trend = Math.round(((ffSpd - curSpd) / ffSpd) * 20)
 
+            // Resolve genuine location name
+            const resolved = await reverseGeocodeLocation(ptLat, ptLon, KEY)
+            let junctionName = resolved.corridor_name
+            if ((!junctionName || junctionName.includes('Road Sector')) && presetRoads[idx]) {
+              junctionName = `${presetRoads[idx]} Junction, ${cityName || 'City'}`
+            }
+
             const item: BottleneckItem = {
-              id: pt.id,
-              corridor_id: `corr-${idx + 1}`,
-              corridor_name: `Hotspot (${pt.lat.toFixed(4)}°, ${pt.lon.toFixed(4)}°)`,
+              id: `bn-0${idx + 1}`,
+              corridor_id: `corr-0${idx + 1}`,
+              corridor_name: junctionName,
               window: 'Live Telemetry Window',
               days: 'Active',
               severity: severity,
               avg_delay_mins: delayMins,
               trend_percent: trend,
               confidence: Number((flow.confidence || 0.94).toFixed(2)),
-              coordinates: [pt.lat, pt.lon],
+              coordinates: [ptLat, ptLon],
             }
             return item
           }
         } catch (_) {}
 
+        const resolved = await reverseGeocodeLocation(ptLat, ptLon, KEY)
+        const name = presetRoads[idx] ? `${presetRoads[idx]}, ${cityName || 'City'}` : resolved.corridor_name
+
         return {
-          id: pt.id,
-          corridor_id: `corr-${idx + 1}`,
-          corridor_name: `Hotspot (${pt.lat.toFixed(4)}°, ${pt.lon.toFixed(4)}°)`,
+          id: `bn-0${idx + 1}`,
+          corridor_id: `corr-0${idx + 1}`,
+          corridor_name: name,
           window: 'Live Telemetry Window',
           days: 'Active',
           severity: 'moderate' as SeverityLevel,
-          avg_delay_mins: 7,
+          avg_delay_mins: 6,
           trend_percent: 5,
           confidence: 0.92,
-          coordinates: [pt.lat, pt.lon],
+          coordinates: [ptLat, ptLon],
         }
       })
     )
