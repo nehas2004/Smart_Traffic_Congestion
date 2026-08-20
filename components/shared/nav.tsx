@@ -81,11 +81,11 @@ export function Nav() {
 
           {/* City Planner Portal Button */}
           <Link
-            href="/admin"
+            href="/admin/traffic"
             className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200/80 transition-all"
           >
             <ShieldAlert size={14} className="text-indigo-600" />
-            <span className="hidden sm:inline">Planner Portal</span>
+            <span className="hidden sm:inline">City Planner Portal</span>
           </Link>
         </div>
       </div>

@@ -194,6 +194,7 @@ export function SectorSelectorModal({
     try {
       localStorage.setItem('planner_active_city', JSON.stringify(sector))
       localStorage.setItem('planner_has_selected_city', 'true')
+      window.dispatchEvent(new CustomEvent('planner_city_changed', { detail: sector }))
     } catch (_) {}
     onSelectSector(sector)
   }
@@ -202,6 +203,7 @@ export function SectorSelectorModal({
     try {
       localStorage.setItem('planner_active_city', JSON.stringify(preset))
       localStorage.setItem('planner_has_selected_city', 'true')
+      window.dispatchEvent(new CustomEvent('planner_city_changed', { detail: preset }))
     } catch (_) {}
     onSelectSector(preset)
   }
