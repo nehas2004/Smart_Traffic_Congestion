@@ -68,16 +68,47 @@ function MapContent() {
 
     // Otherwise calculate fresh route via TomTom API
     if (fromLat && toLat && fromLon && toLon) {
-      const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromLat},${fromLon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=1&traffic=true&routeType=fastest&travelMode=car&sectionType=traffic&instructionsType=tagged&computeTravelTimeFor=all`
+      const url = `https://api.tomtom.com/routing/1/calculateRoute/${fromLat},${fromLon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=2&traffic=true&routeType=fastest&travelMode=car&sectionType=traffic&instructionsType=tagged&computeTravelTimeFor=all`
 
-      fetch(url)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data.routes?.[0]) {
-            setRouteData(data.routes[0])
+      Promise.all([
+        fetch(url).then((r) => r.json()),
+        fetch('/api/incidents').then((r) => r.json()).catch(() => []),
+      ])
+        .then(([data, incidents]) => {
+          const routes = data.routes || []
+          if (routes.length > 0) {
+            let bestRoute = routes[0]
+            let minEffectiveTime = Infinity
+
+            routes.forEach((r: any) => {
+              const summary = r.summary || {}
+              const travelTimeSec = summary.travelTimeInSeconds || 1
+              const pts = (r?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude])
+              let incidentDelaySec = 0
+
+              if (Array.isArray(incidents)) {
+                incidents.forEach((inc: any) => {
+                  if (!inc.active || !inc.lat || !inc.lon) return
+                  const isNear = pts.some((pt: any) => {
+                    return Math.abs(pt[0] - inc.lat) < 0.015 && Math.abs(pt[1] - inc.lon) < 0.015
+                  })
+                  if (isNear) {
+                    incidentDelaySec += (inc.expected_delay_mins || 15) * 60
+                  }
+                })
+              }
+
+              const totalEffectiveSec = travelTimeSec + incidentDelaySec
+              if (totalEffectiveSec < minEffectiveTime) {
+                minEffectiveTime = totalEffectiveSec
+                bestRoute = r
+              }
+            })
+
+            setRouteData(bestRoute)
             if (autoStart) {
               startNavigation(
-                data.routes[0],
+                bestRoute,
                 { lat: parseFloat(toLat), lon: parseFloat(toLon), name: toName },
                 false
               )
@@ -402,20 +433,50 @@ function MapContent() {
   const handleReroute = () => {
     if (!navState.currentPosition || !toLat || !toLon) return
     const { lat, lon } = navState.currentPosition
-    const url = `https://api.tomtom.com/routing/1/calculateRoute/${lat},${lon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=1&traffic=true&routeType=fastest&travelMode=car&sectionType=traffic&instructionsType=tagged`
+    const url = `https://api.tomtom.com/routing/1/calculateRoute/${lat},${lon}:${toLat},${toLon}/json?key=${KEY}&maxAlternatives=2&traffic=true&routeType=fastest&travelMode=car&sectionType=traffic&instructionsType=tagged`
 
-    fetch(url)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.routes?.[0]) {
-          setRouteData(data.routes[0])
-          startNavigation(
-            data.routes[0],
-            { lat: parseFloat(toLat), lon: parseFloat(toLon), name: toName },
-            false
-          )
-        }
-      })
+    Promise.all([
+      fetch(url).then((r) => r.json()),
+      fetch('/api/incidents').then((r) => r.json()).catch(() => []),
+    ]).then(([data, incidents]) => {
+      const routes = data.routes || []
+      if (routes.length > 0) {
+        let bestRoute = routes[0]
+        let minEffectiveTime = Infinity
+
+        routes.forEach((r: any) => {
+          const summary = r.summary || {}
+          const travelTimeSec = summary.travelTimeInSeconds || 1
+          const pts = (r?.legs?.[0]?.points || []).map((p: any) => [p.latitude, p.longitude])
+          let incidentDelaySec = 0
+
+          if (Array.isArray(incidents)) {
+            incidents.forEach((inc: any) => {
+              if (!inc.active || !inc.lat || !inc.lon) return
+              const isNear = pts.some((pt: any) => {
+                return Math.abs(pt[0] - inc.lat) < 0.015 && Math.abs(pt[1] - inc.lon) < 0.015
+              })
+              if (isNear) {
+                incidentDelaySec += (inc.expected_delay_mins || 15) * 60
+              }
+            })
+          }
+
+          const totalEffectiveSec = travelTimeSec + incidentDelaySec
+          if (totalEffectiveSec < minEffectiveTime) {
+            minEffectiveTime = totalEffectiveSec
+            bestRoute = r
+          }
+        })
+
+        setRouteData(bestRoute)
+        startNavigation(
+          bestRoute,
+          { lat: parseFloat(toLat), lon: parseFloat(toLon), name: toName },
+          false
+        )
+      }
+    })
   }
 
   const handleLayerMode = (mode: 'hybrid' | 'heatmap' | 'flow') => {
