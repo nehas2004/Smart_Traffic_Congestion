@@ -2,6 +2,14 @@
 FastAPI entry point for the AI Recommendation module.
 Runs on port 8000. Next.js frontend calls http://localhost:8000.
 """
+import sys
+from pathlib import Path
+
+# Ensure backend root is in sys.path for local module resolution
+_BACKEND_DIR = Path(__file__).resolve().parent
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
