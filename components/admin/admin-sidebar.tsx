@@ -267,55 +267,70 @@ export function AdminSidebar() {
         } w-[272px]`}
       >
         {/* ── Sidebar Header ── */}
-        <div className="flex h-16 shrink-0 items-center justify-between border-b border-[#e8e0d5] px-3.5">
-          <Link
-            href="/admin/traffic"
-            className="flex items-center gap-2.5 text-inherit no-underline overflow-hidden transition-opacity hover:opacity-90"
-            title="Flowcast - 10km Grid Traffic Intelligence"
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] shadow-xs">
-              <ShieldAlert className="size-4 text-[#c8a97e]" />
-            </div>
-
-            {(!isCollapsed || isMobileOpen) && (
-              <div className="flex flex-col min-w-0 transition-opacity duration-200">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-tight text-[#2c2825] truncate">Flowcast</span>
-                  <span className="shrink-0 rounded-full bg-[#2c2825] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#c8a97e]">
-                    Planner
-                  </span>
+        <div
+          className={`flex h-16 shrink-0 items-center border-b border-[#e8e0d5] ${
+            isCollapsed && !isMobileOpen ? 'justify-center px-0' : 'justify-between px-3.5'
+          }`}
+        >
+          {(!isCollapsed || isMobileOpen) ? (
+            <>
+              <Link
+                href="/admin/traffic"
+                className="flex items-center gap-2.5 text-inherit no-underline overflow-hidden transition-opacity hover:opacity-90 min-w-0"
+                title="Flowcast - 10km Grid Traffic Intelligence"
+              >
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#2c2825] shadow-xs">
+                  <ShieldAlert className="size-4 text-[#c8a97e]" />
                 </div>
-                <p className="text-[10px] text-[#9e9189] leading-tight truncate">
-                  Traffic Intelligence Center
-                </p>
-              </div>
-            )}
-          </Link>
 
-          {/* Desktop Collapse Button */}
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] shadow-2xs transition hover:bg-[#f5f2ee] hover:text-[#2c2825] cursor-pointer"
-            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {isCollapsed ? (
-              <PanelLeftOpen className="size-4 text-[#9e9189]" />
-            ) : (
-              <PanelLeftClose className="size-4 text-[#9e9189]" />
-            )}
-          </button>
+                <div className="flex flex-col min-w-0 transition-opacity duration-200">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-base tracking-tight text-[#2c2825] truncate">Flowcast</span>
+                    <span className="shrink-0 rounded-full bg-[#2c2825] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[#c8a97e]">
+                      Planner
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#9e9189] leading-tight truncate">
+                    Traffic Intelligence Center
+                  </p>
+                </div>
+              </Link>
 
-          {/* Mobile Close Button */}
-          <button
-            type="button"
-            onClick={() => setIsMobileOpen(false)}
-            className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] hover:bg-[#f5f2ee] cursor-pointer"
-            aria-label="Close Sidebar"
-          >
-            <X className="size-4" />
-          </button>
+              {/* Desktop Collapse Button */}
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                className="hidden lg:flex size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] shadow-2xs transition hover:bg-[#f5f2ee] hover:text-[#2c2825] cursor-pointer"
+                title="Collapse sidebar"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose className="size-4 text-[#9e9189]" />
+              </button>
+
+              {/* Mobile Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsMobileOpen(false)}
+                className="flex lg:hidden size-8 shrink-0 items-center justify-center rounded-lg border border-[#e8e0d5] bg-white text-[#6b625b] hover:bg-[#f5f2ee] cursor-pointer"
+                aria-label="Close Sidebar"
+              >
+                <X className="size-4" />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              className="group relative flex size-10 items-center justify-center rounded-xl bg-[#2c2825] shadow-xs transition hover:scale-105 cursor-pointer"
+              title="Expand Sidebar (Flowcast Traffic Planner)"
+              aria-label="Expand Sidebar"
+            >
+              <ShieldAlert className="size-5 text-[#c8a97e]" />
+              <span className="absolute -right-1 -top-1 flex size-4 items-center justify-center rounded-full bg-white border border-[#e8e0d5] text-[#2c2825] shadow-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                <PanelLeftOpen className="size-2.5 text-[#2c2825]" />
+              </span>
+            </button>
+          )}
         </div>
 
         {/* ── 10KM City & Sector Selector Card ── */}
