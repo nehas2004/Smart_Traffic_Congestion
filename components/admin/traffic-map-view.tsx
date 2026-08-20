@@ -940,7 +940,7 @@ export function TrafficMapView({
               <span>Show All on Map</span>
             </button>
 
-            {isFetchingTraffic && (
+            {isLoading && (
               <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
                 <RefreshCw className="size-3.5 animate-spin" /> Fetching Live Grid...
               </span>
