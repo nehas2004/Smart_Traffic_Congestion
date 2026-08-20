@@ -526,10 +526,15 @@ function RoutesContent() {
               heavyP = 0
             }
 
+            const baseTravelTimeMins = freeFlowTimeMins
+            const totalPredictedMins = baseTravelTimeMins + finalDelay
+
             return {
               predictedSpeed: speedKmh,
               freeFlowSpeed,
               delay: finalDelay,
+              baseTravelTimeMins,
+              totalPredictedMins,
               hotspots,
               mlModel: mlItem?.predictions_15min_ahead,
               segmentProportions: { fast: fastP, moderate: modP, slow: slowP, heavy: heavyP },
@@ -768,6 +773,8 @@ function RoutesContent() {
           polylinesRef.current.push(segLine)
         })
 
+        const totalDurationMins = fc?.totalPredictedMins || Math.round((route.summary?.travelTimeInSeconds || 0) / 60)
+
         // Invisible broader hover/click polyline across full route
         const interactiveCover = L.polyline(pts, {
           color: 'transparent',
@@ -779,7 +786,7 @@ function RoutesContent() {
         interactiveCover.bindTooltip(
           `<div style="font-family:system-ui; padding:3px;">
             <strong style="color:#0f172a;">Route ${idx + 1} ${idx === 0 ? '(Recommended)' : '(Alternate Corridor)'}</strong><br/>
-            <span style="font-size:12px; color:#475569;">Duration: ${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)} min (${delay > 0 ? `+${delay}m delay` : 'On Time'}) · ${((route.summary?.lengthInMeters || 0) / 1000).toFixed(1)} km</span><br/>
+            <span style="font-size:12px; color:#475569;">Duration: ${totalDurationMins} min (${delay > 0 ? `+${delay}m delay` : 'On Time'}) · ${((route.summary?.lengthInMeters || 0) / 1000).toFixed(1)} km</span><br/>
             <span style="font-size:11px; color:#6366f1; font-weight:700;">${isSelected ? '✓ Active Route' : '👉 Click to switch to this route'}</span>
           </div>`,
           { sticky: true }
@@ -803,7 +810,7 @@ function RoutesContent() {
                 border: 2px solid ${isSelected ? '#ffffff' : '#94a3b8'};
                 box-shadow: 0 4px 10px rgba(0,0,0,0.2); white-space: nowrap; cursor: pointer;
               ">
-                Route ${idx + 1} ${isRec ? '★' : ''} (${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)}m${delay > 0 ? ` · +${delay}m` : ''})
+                Route ${idx + 1} ${isRec ? '★' : ''} (${totalDurationMins}m${delay > 0 ? ` · +${delay}m` : ''})
               </div>
             `,
             className: '',
@@ -826,7 +833,7 @@ function RoutesContent() {
         }
       })
 
-      // 2. Hotspots & Bottleneck Markers
+      // 2. Hotspots & Bottleneck Coordinates for Heatmap
       const currentForecast = forecasts[mapLayerMode === 'heatmap' ? 0 : selectedRouteIdx]
       const hotspots = currentForecast?.hotspots || []
 
@@ -835,35 +842,6 @@ function RoutesContent() {
           heatPoints.push([hs.lat, hs.lon, hs.intensity || 0.95])
           heatPoints.push([hs.lat + 0.001, hs.lon + 0.001, hs.intensity ? hs.intensity * 0.8 : 0.75])
           heatPoints.push([hs.lat - 0.001, hs.lon - 0.001, hs.intensity ? hs.intensity * 0.8 : 0.75])
-
-          const isBlock = hs.severity === 'Severe' || hs.delay > 10
-          const warningIcon = L.divIcon({
-            html: `
-              <div style="
-                width: 28px; height: 28px; border-radius: 50%;
-                background: ${isBlock ? '#991b1b' : '#ef4444'}; color: white;
-                display: flex; align-items: center; justify-content: center;
-                border: 2px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                cursor: pointer;
-              ">
-                <span style="font-size: 13px; font-weight: 900;">!</span>
-              </div>
-            `,
-            className: '',
-            iconSize: [28, 28],
-            iconAnchor: [14, 14],
-          })
-
-          const marker = L.marker([hs.lat, hs.lon], { icon: warningIcon }).addTo(map)
-          marker.bindPopup(`
-            <div style="font-family: system-ui; min-width: 175px; padding: 4px;">
-              <div style="font-size: 10px; font-weight: 800; color: #ef4444; text-transform: uppercase; letter-spacing: 0.05em;">Traffic Bottleneck</div>
-              <div style="font-weight: 800; font-size: 13px; color: #0f172a; margin-top: 2px;">${hs.name}</div>
-              <div style="font-size: 12px; color: #ef4444; font-weight: 700; margin-top: 4px;">+${hs.delay} min delay</div>
-              <div style="font-size: 11px; color: #64748b; margin-top: 2px;">Severity: ${hs.severity}</div>
-            </div>
-          `)
-          markersRef.current.push(marker)
         }
       })
 
@@ -1484,7 +1462,9 @@ function RoutesContent() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {routes.map((r, i) => {
                   const fc = forecasts[i]
-                  const eta = Math.round((r.summary?.travelTimeInSeconds || 0) / 60)
+                  const baseM = fc?.baseTravelTimeMins || Math.round((r.summary?.travelTimeInSeconds || 0) / 60)
+                  const del = fc?.delay || 0
+                  const totalPredicted = fc?.totalPredictedMins || (baseM + del)
                   const isSel = selectedRouteIdx === i
                   return (
                     <button
@@ -1499,15 +1479,15 @@ function RoutesContent() {
                     >
                       <div className="flex items-center justify-between w-full">
                         <span className="text-[11px] uppercase tracking-wider">{i === 0 ? '★ Route 1' : `Route ${i + 1}`}</span>
-                        {fc?.delay && fc.delay > 0 ? (
+                        {del > 0 ? (
                           <span className={`text-[10px] font-extrabold px-1 rounded ${
                             isSel ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-600'
                           }`}>
-                            +{fc.delay}m
+                            +{del}m
                           </span>
                         ) : null}
                       </div>
-                      <span className={`text-sm font-black ${isSel ? 'text-white' : 'text-slate-900'}`}>{eta} min</span>
+                      <span className={`text-sm font-black ${isSel ? 'text-white' : 'text-slate-900'}`}>{totalPredicted} min</span>
                     </button>
                   )
                 })}
@@ -1537,14 +1517,15 @@ function RoutesContent() {
             {!loading &&
               routes.map((route, idx) => {
                 const summary = route.summary || {}
-                const etaMins = Math.round((summary.travelTimeInSeconds || 0) / 60)
                 const distKm = ((summary.lengthInMeters || 0) / 1000).toFixed(1)
                 const fuelEst = Math.max(25, Math.round(parseFloat(distKm) * 7.5))
                 const fc = forecasts[idx]
+                const baseMins = fc?.baseTravelTimeMins || Math.round((summary.travelTimeInSeconds || 0) / 60)
+                const delayVal = fc?.delay || 0
+                const totalPredictedMins = fc?.totalPredictedMins || (baseMins + delayVal)
                 const isSelected = selectedRouteIdx === idx
                 const isTopRoute = idx === 0
                 const seg = fc?.segmentProportions || { fast: 70, moderate: 20, slow: 10, heavy: 0 }
-                const delayVal = fc?.delay || 0
 
                 // ── COMPACT ACCORDION VIEW FOR UNSELECTED ROUTES ──
                 if (!isSelected) {
@@ -1570,8 +1551,8 @@ function RoutesContent() {
                           )}
                         </div>
                         <div className="flex items-baseline gap-2">
-                          <span className="text-xl font-black text-slate-900 leading-none">{etaMins} min</span>
-                          <span className="text-xs text-slate-500 font-semibold">{distKm} km · ₹{fuelEst} fuel</span>
+                          <span className="text-xl font-black text-slate-900 leading-none">{totalPredictedMins} min</span>
+                          <span className="text-xs text-slate-500 font-semibold">{distKm} km · {baseMins}m base + {delayVal}m delay</span>
                         </div>
                       </div>
 
@@ -1619,15 +1600,17 @@ function RoutesContent() {
                     <div className="mt-2.5">
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-                          {etaMins}
+                          {totalPredictedMins}
                         </span>
                         <span className="text-base font-bold text-slate-500">min</span>
                       </div>
                       <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mt-1">
                         <span>{distKm} km</span>
                         <span>•</span>
+                        <span>{baseMins}m base + {delayVal}m delay</span>
+                        <span>•</span>
                         <span className="flex items-center gap-1">
-                          <Fuel size={12} className="text-slate-400" /> ₹{fuelEst} est. fuel
+                          <Fuel size={12} className="text-slate-400" /> ₹{fuelEst} fuel
                         </span>
                       </div>
                     </div>
@@ -1687,16 +1670,18 @@ function RoutesContent() {
                     {/* ML Congestion Forecast Breakdown */}
                     <div className="bg-slate-50 rounded-xl p-3 mt-3 border border-slate-100">
                       <div className="flex justify-between items-center text-xs mb-1.5">
-                        <span className="text-slate-500 font-medium">Predicted Corridor Speed</span>
-                        <span className="font-bold text-slate-900">
-                          {Math.round(fc?.predictedSpeed || FREE_FLOW)} km/h
-                        </span>
+                        <span className="text-slate-500 font-medium">Base Free-Flow Travel Time</span>
+                        <span className="font-bold text-slate-800">{baseMins} min</span>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-500 font-medium">Traffic Bottleneck Delay</span>
+                      <div className="flex justify-between items-center text-xs mb-1.5">
+                        <span className="text-slate-500 font-medium">Predicted Congestion Delay</span>
                         <span className={`font-bold ${delayVal > 8 ? 'text-rose-600' : 'text-amber-600'}`}>
                           +{delayVal} min
                         </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs pt-1.5 border-t border-slate-200/60">
+                        <span className="text-slate-900 font-bold">Total Predicted Travel Time</span>
+                        <span className="font-extrabold text-indigo-700">{totalPredictedMins} min</span>
                       </div>
 
                       {/* Bottlenecks List */}
@@ -1752,7 +1737,7 @@ function RoutesContent() {
           <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-sm flex flex-col relative min-h-[580px] lg:h-[calc(100vh-210px)] sticky top-36">
             {/* Floating Header Toolbar */}
             <div className="absolute top-3.5 inset-x-3.5 z-[1000] flex items-center justify-between gap-2 pointer-events-none flex-wrap">
-              {/* Layer Mode Selector (Hybrid, Congestion Heatmap, Live Flow) */}
+              {/* Layer Mode Selector (Hybrid, Congestion Heatmap) */}
               <div className="bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-xl p-1 flex items-center gap-1 shadow-md pointer-events-auto">
                 <button
                   type="button"
@@ -1776,18 +1761,6 @@ function RoutesContent() {
                   }`}
                 >
                   <Flame size={13} className="text-amber-400" /> Heatmap
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleLayerModeChange('flow')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    mapLayerMode === 'flow'
-                      ? 'bg-slate-900 text-white shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <Gauge size={13} className="text-emerald-400" /> Live Flow
                 </button>
               </div>
             </div>
