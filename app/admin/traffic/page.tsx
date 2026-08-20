@@ -105,26 +105,20 @@ export default function AdminTrafficMapPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-wider text-[#9e9189]">
-              City Planner · Overview
-            </span>
-            <span className="text-[#e8e0d5]">/</span>
-            <span className="text-xs font-bold text-blue-700">Surveillance Grid</span>
+            <Link
+              href="/admin"
+              className="flex items-center gap-1 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
+            >
+              <ArrowLeft className="size-3.5" /> Dashboard
+            </Link>
+            <span className="text-slate-300">/</span>
+            <span className="text-xs font-bold text-slate-900">10km Grid Traffic Intelligence</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5 mt-1">
-            <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
-              City Overview & Traffic Surveillance
-            </h1>
-            <div className="flex items-center gap-1.5 rounded-xl border border-blue-600/30 bg-blue-50 px-3 py-1 text-xs font-black text-blue-950 shadow-2xs">
-              <span className="size-2 rounded-full bg-blue-600 animate-pulse" />
-              <span>{activeCity}</span>
-              <span className="font-mono text-[11px] font-bold text-blue-700/80">
-                ({activeCoords.lat.toFixed(4)}°, {activeCoords.lon.toFixed(4)}°)
-              </span>
-            </div>
-          </div>
-          <p className="text-xs text-[#9e9189] font-mono mt-0.5">
-            Active Grid Sector: {activeCity} · 10.0 km radius surveillance perimeter & live flow
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 mt-1">
+            Live 10km Congestion Grid & Location Intelligence
+          </h1>
+          <p className="text-xs text-slate-500 font-mono mt-0.5">
+            Active Grid Center: {activeCity} · Radius: 10.0 km
           </p>
         </div>
 
@@ -132,7 +126,7 @@ export default function AdminTrafficMapPage() {
           <button
             type="button"
             onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-orange-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all hover:from-amber-700 hover:to-orange-700 hover:scale-[1.02] cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm shadow-emerald-500/20 transition-all hover:bg-emerald-700 hover:scale-[1.02] cursor-pointer"
           >
             <Flame className="size-3.5 fill-white" />
             Report Event Disruption
@@ -141,11 +135,10 @@ export default function AdminTrafficMapPage() {
           <button
             type="button"
             onClick={() => loadData()}
-            disabled={loading}
-            className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-sm hover:bg-[#faf8f5] cursor-pointer"
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
           >
-            <RefreshCw className={`size-3.5 text-[#a67c52] ${loading ? 'animate-spin' : ''}`} />
-            Refresh Telemetry
+            <RefreshCw className="size-3.5 text-emerald-600" />
+            Refresh Corridors
           </button>
         </div>
       </div>
@@ -161,6 +154,26 @@ export default function AdminTrafficMapPage() {
         isLoading={loading}
         onSelectCorridor={(id) => setSelectedCorridorId(id)}
       />
+
+      {/* ACTIVE REPORTED LOCAL DISRUPTIONS PANEL */}
+      <ActiveIncidentsPanel onIncidentCancelled={() => loadData()} />
+
+      {/* CORRIDOR CONTEXT DECISION SUPPORT */}
+      <div className="space-y-3">
+        <h2 className="text-base font-extrabold text-slate-900">
+          Active Corridor Decision Support
+        </h2>
+        {selectedRecommendation ? (
+          <DecisionSupportCard
+            recommendation={selectedRecommendation}
+            onDecision={handleDecision}
+          />
+        ) : (
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
+            No pending action items for this corridor.
+          </div>
+        )}
+      </div>
 
       {/* Report Incident Modal */}
       <ReportIncidentModal

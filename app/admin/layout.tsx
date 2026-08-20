@@ -82,27 +82,27 @@ export default function AdminLayout({
 
   if (checkingAuth || !isAuthorized) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#faf8f5] text-[#2c2825]">
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-[#e8e0d5] bg-white p-8 shadow-sm">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-[#2c2825] text-[#c8a97e]">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 text-slate-900">
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="flex size-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-md shadow-emerald-500/20">
             <ShieldAlert className="size-6" />
           </div>
           <div className="text-center">
-            <h3 className="text-base font-extrabold text-[#2c2825]">
+            <h3 className="text-base font-extrabold text-slate-900">
               Verifying City Planner Credentials
             </h3>
-            <p className="mt-1 text-xs text-[#9e9189]">
+            <p className="mt-1 text-xs text-slate-500">
               Authenticating session with Traffic Operations Center...
             </p>
           </div>
-          <Loader2 className="size-5 animate-spin text-[#a67c52]" />
+          <Loader2 className="size-5 animate-spin text-emerald-600" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-[#faf8f5] text-[#2c2825] font-sans antialiased">
+    <div className="flex min-h-screen w-full bg-slate-50 text-slate-900 font-sans antialiased">
       <AdminSidebar />
       <div className="flex flex-1 flex-col min-w-0 overflow-x-hidden transition-all duration-300">
         {children}

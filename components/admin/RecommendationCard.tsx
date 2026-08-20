@@ -10,10 +10,10 @@ export interface RecommendationOption {
   id: string
   strategy_type: 'signal_timing' | 'dynamic_reroute' | 'officer_dispatch'
   title: string
-  action: str
-  reason: str
-  expected_impact: str
-  side_effect_tradeoff: str
+  action: string
+  reason: string
+  expected_impact: string
+  side_effect_tradeoff: string
   confidence: Confidence
   is_recommended?: boolean
 }

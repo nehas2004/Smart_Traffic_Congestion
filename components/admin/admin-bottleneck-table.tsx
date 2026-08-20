@@ -44,14 +44,14 @@ export function AdminBottleneckTable({
   })
 
   return (
-    <Card className="overflow-hidden border-[#e8e0d5] bg-white shadow-sm">
+    <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
       {/* Header with Search & Filter */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0ece7] bg-[#faf8f5] px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/70 px-5 py-4">
         <div>
-          <h2 className="text-sm font-extrabold text-[#2c2825]">
+          <h2 className="text-sm font-extrabold text-slate-900">
             Monitored Bottlenecks & Grid Hotspots
           </h2>
-          <p className="text-[11px] text-[#9e9189]">
+          <p className="text-[11px] text-slate-500">
             Identified recurring delay points categorized by operational severity
           </p>
         </div>
@@ -59,13 +59,13 @@ export function AdminBottleneckTable({
         <div className="flex items-center gap-2.5">
           {/* Search Input */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-[#9e9189]" />
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Filter corridors..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-8 rounded-lg border border-[#e8e0d5] bg-white pl-8 pr-3 text-xs text-[#2c2825] outline-none focus:border-[#a67c52]"
+              className="h-8 rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs text-slate-900 outline-none focus:border-emerald-500"
             />
           </div>
 
@@ -73,7 +73,7 @@ export function AdminBottleneckTable({
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="h-8 rounded-lg border border-[#e8e0d5] bg-white px-2.5 text-xs font-semibold text-[#2c2825] outline-none focus:border-[#a67c52]"
+            className="h-8 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none focus:border-emerald-500"
           >
             <option value="all">All Severities</option>
             <option value="severe">Severe</option>
@@ -87,7 +87,7 @@ export function AdminBottleneckTable({
       {/* Table Content */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="border-b border-[#f0ece7] bg-[#faf8f5]/60 text-[10px] font-bold uppercase tracking-wider text-[#9e9189]">
+          <thead className="border-b border-slate-100 bg-slate-50/50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
             <tr>
               <th className="px-5 py-3">Corridor / Location</th>
               <th className="px-4 py-3">Time Window & Days</th>
@@ -99,27 +99,27 @@ export function AdminBottleneckTable({
               <th className="px-5 py-3 text-right">Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f0ece7]">
+          <tbody className="divide-y divide-slate-100">
             {filtered.map((item) => {
               const badge = sevBadge[item.severity] || sevBadge.moderate
               const predictedTti = 'predicted_congestion' in item ? item.predicted_congestion : undefined
               return (
                 <tr
                   key={item.id}
-                  className="transition-colors hover:bg-[#faf8f5]/80 cursor-pointer"
+                  className="transition-colors hover:bg-slate-50/80 cursor-pointer"
                   onClick={() => onSelectBottleneck && onSelectBottleneck(item.corridor_id)}
                 >
                   <td className="px-5 py-3.5">
-                    <div className="font-bold text-[#2c2825]">{item.corridor_name}</div>
-                    <span className="font-mono text-[10px] text-[#9e9189]">ID: {item.id}</span>
+                    <div className="font-bold text-slate-900">{item.corridor_name}</div>
+                    <span className="font-mono text-[10px] text-slate-400">ID: {item.id}</span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-1.5 font-medium text-[#2c2825]">
-                      <Clock className="size-3 text-[#9e9189]" />
+                    <div className="flex items-center gap-1.5 font-medium text-slate-800">
+                      <Clock className="size-3 text-slate-400" />
                       {item.window}
                     </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#9e9189]">
-                      <Calendar className="size-3 text-[#9e9189]" />
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <Calendar className="size-3 text-slate-400" />
                       {item.days}
                     </div>
                   </td>
@@ -136,7 +136,7 @@ export function AdminBottleneckTable({
                     </span>
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className="font-mono text-sm font-extrabold text-[#2c2825]">
+                    <span className="font-mono text-sm font-extrabold text-slate-900">
                       +{item.avg_delay_mins} min
                     </span>
                   </td>
@@ -154,16 +154,16 @@ export function AdminBottleneckTable({
                       <span>{Math.abs(item.trend_percent)}%</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3.5 font-mono font-extrabold text-[#2c2825]">
+                  <td className="px-4 py-3.5 font-mono font-extrabold text-slate-900">
                     {predictedTti?.toFixed(2) ?? 'Unavailable'}
                   </td>
-                  <td className="px-4 py-3.5 font-mono text-[#6b625b]">
+                  <td className="px-4 py-3.5 font-mono text-slate-600">
                     {item.confidence == null ? 'Unavailable' : `${(item.confidence * 100).toFixed(0)}%`}
                   </td>
                   <td className="px-5 py-3.5 text-right">
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 rounded-lg border border-[#e8e0d5] bg-white px-2.5 py-1 text-[11px] font-bold text-[#2c2825] transition-all hover:bg-[#2c2825] hover:text-white"
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-700 transition-all hover:bg-emerald-600 hover:border-emerald-600 hover:text-white cursor-pointer"
                     >
                       Inspect <ChevronRight className="size-3" />
                     </button>
@@ -173,7 +173,7 @@ export function AdminBottleneckTable({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-8 text-center text-xs text-[#9e9189]">
+                <td colSpan={8} className="px-5 py-8 text-center text-xs text-slate-400">
                   No bottlenecks matching current search or filters.
                 </td>
               </tr>

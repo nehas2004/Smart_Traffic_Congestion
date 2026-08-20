@@ -53,10 +53,10 @@ export function BottleneckPanel({
       {/* Header & Sort Control */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-base font-extrabold text-[#2c2825]">
+          <h3 className="text-base font-extrabold text-slate-900">
             Ranked Bottleneck Arterials
           </h3>
-          <p className="text-xs text-[#9e9189]">
+          <p className="text-xs text-slate-500">
             Pre-ranked corridor bottlenecks based on recurring peak delays
           </p>
         </div>
@@ -64,9 +64,9 @@ export function BottleneckPanel({
         <button
           type="button"
           onClick={() => setSortBySeverity(!sortBySeverity)}
-          className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3 py-1.5 text-xs font-bold text-[#2c2825] shadow-xs hover:bg-[#faf8f5] cursor-pointer"
+          className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 cursor-pointer"
         >
-          <ArrowUpDown className="size-3.5 text-[#a67c52]" />
+          <ArrowUpDown className="size-3.5 text-emerald-600" />
           Sort by: {sortBySeverity ? 'Severity Ranking' : 'Avg Delay (mins)'}
         </button>
       </div>
@@ -77,19 +77,19 @@ export function BottleneckPanel({
           <div
             key={bn.id || idx}
             onClick={() => onSelectCorridor?.(bn.corridor_id)}
-            className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[#e8e0d5] bg-white p-4 transition-all hover:border-[#a67c52] hover:shadow-xs cursor-pointer"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-all hover:border-emerald-500 hover:shadow-xs cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-[#2c2825] font-mono text-xs font-bold text-[#c8a97e]">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 font-mono text-xs font-bold text-white shadow-xs">
                 #{idx + 1}
               </span>
               <div>
-                <h4 className="text-sm font-bold text-[#2c2825]">
+                <h4 className="text-sm font-bold text-slate-900">
                   {bn.corridor_name}
                 </h4>
-                <div className="flex items-center gap-2 text-[11px] text-[#9e9189] mt-0.5">
-                  <span className="flex items-center gap-1 font-medium text-[#6b625b]">
-                    <Clock className="size-3 text-[#a67c52]" />
+                <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                  <span className="flex items-center gap-1 font-medium text-slate-600">
+                    <Clock className="size-3 text-emerald-600" />
                     Peak: {bn.window} ({bn.days})
                   </span>
                   <span>·</span>
@@ -100,8 +100,8 @@ export function BottleneckPanel({
 
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <span className="text-sm font-black text-red-700">+{bn.avg_delay_mins}m</span>
-                <p className="text-[10px] text-[#9e9189]">Avg Peak Delay</p>
+                <span className="text-sm font-black text-rose-700">+{bn.avg_delay_mins}m</span>
+                <p className="text-[10px] text-slate-400">Avg Peak Delay</p>
               </div>
 
               <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-extrabold uppercase ${getSeverityBadge(bn.severity)}`}>
@@ -110,7 +110,7 @@ export function BottleneckPanel({
 
               <button
                 type="button"
-                className="rounded-lg bg-[#f5f2ee] p-1.5 text-[#2c2825] hover:bg-[#2c2825] hover:text-white transition-colors"
+                className="rounded-lg bg-slate-100 p-1.5 text-slate-700 hover:bg-emerald-600 hover:text-white transition-colors cursor-pointer"
                 title="Inspect Location Intelligence"
               >
                 <ArrowRight className="size-3.5" />
@@ -120,7 +120,7 @@ export function BottleneckPanel({
         ))}
 
         {sortedList.length === 0 && (
-          <div className="rounded-xl border border-[#e8e0d5] bg-white p-8 text-center text-xs text-[#9e9189]">
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-xs text-slate-400">
             No bottlenecks currently reported by the server.
           </div>
         )}

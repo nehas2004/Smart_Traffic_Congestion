@@ -126,39 +126,39 @@ export function AnalyticsPanel() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-[#2c2825] text-[#c8a97e]">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
               <Brain className="size-4" />
             </div>
-            <h2 className="text-xl font-extrabold text-[#2c2825] tracking-tight">
+            <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
               Machine Learning Model Pipeline & Congestion Analytics
             </h2>
           </div>
-          <p className="mt-1 text-xs text-[#9e9189]">
+          <p className="mt-1 text-xs text-slate-500">
             Rigorous cross-validation on {data?.total_records_used || '2,340'} urban road sensor data points
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
+          <span className="rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-800 flex items-center gap-1.5 border border-emerald-200">
             <CheckCircle2 className="size-3.5 text-emerald-600" />
             Held-out Synthetic Validation Verified
           </span>
         </div>
       </div>
 
-      {/* Model Comparison Cards Grid */}
+      {/* Models Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {models.map((m, idx) => (
+        {models.map((m) => (
           <div
             key={m.name}
             className={`relative flex flex-col justify-between rounded-2xl border p-6 shadow-sm transition-all ${
               m.isWinner
-                ? 'border-2 border-[#a67c52] bg-white ring-4 ring-[#a67c52]/10'
-                : 'border-[#e8e0d5] bg-white'
+                ? 'border-2 border-emerald-600 bg-white ring-4 ring-emerald-500/10'
+                : 'border-slate-200 bg-white'
             }`}
           >
             {m.isWinner && (
-              <span className="absolute -top-3 right-6 rounded-full bg-[#a67c52] px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-sm">
+              <span className="absolute -top-3 right-6 rounded-full bg-emerald-600 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-white shadow-xs">
                 ⭐ Production Winner
               </span>
             )}
@@ -166,46 +166,46 @@ export function AnalyticsPanel() {
             <div>
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189]">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                     {m.modelType}
                   </span>
-                  <h3 className="text-lg font-black text-[#2c2825]">{m.name}</h3>
+                  <h3 className="text-lg font-black text-slate-900">{m.name}</h3>
                 </div>
-                <div className="flex size-8 items-center justify-center rounded-lg bg-[#f5f2ee] text-[#a67c52]">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
                   <Cpu className="size-4" />
                 </div>
               </div>
 
-              <p className="mt-2 text-xs leading-relaxed text-[#9e9189]">
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
                 {m.description}
               </p>
 
               {/* Accuracy & Error Metrics */}
-              <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-[#faf8f5] p-3 text-center border border-[#f0ece7]">
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center border border-slate-100">
                 <div>
-                  <p className="text-[10px] font-bold text-[#9e9189]">MAE</p>
-                  <p className="text-sm font-black text-[#2c2825]">{m.mae}</p>
+                  <p className="text-[10px] font-bold text-slate-400">MAE</p>
+                  <p className="text-sm font-black text-slate-900">{m.mae}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#9e9189]">RMSE</p>
-                  <p className="text-sm font-black text-[#2c2825]">{m.rmse}</p>
+                  <p className="text-[10px] font-bold text-slate-400">RMSE</p>
+                  <p className="text-sm font-black text-slate-900">{m.rmse}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-[#9e9189]">R² SCORE</p>
+                  <p className="text-[10px] font-bold text-slate-400">R² SCORE</p>
                   <p className="text-sm font-black text-emerald-700">{m.r2}</p>
                 </div>
               </div>
 
               {/* Hyperparameters */}
-              <div className="mt-4 space-y-1.5 border-t border-[#f0ece7] pt-3">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#9e9189]">
+              <div className="mt-4 space-y-1.5 border-t border-slate-100 pt-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Model Parameters
                 </span>
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {Object.entries(m.hyperparameters).map(([k, v]) => (
                     <span
                       key={k}
-                      className="rounded-md bg-[#f5f2ee] px-2 py-0.5 font-mono text-[10px] font-medium text-[#6b625b]"
+                      className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[10px] font-medium text-slate-700"
                     >
                       {k}: <strong>{v}</strong>
                     </span>
@@ -214,42 +214,42 @@ export function AnalyticsPanel() {
               </div>
             </div>
 
-            <div className="mt-6 border-t border-[#f0ece7] pt-3 flex items-center justify-between text-xs">
-              <span className="text-[11px] font-semibold text-[#9e9189]">Status</span>
-              <span className="font-bold text-[#2c2825]">{m.status}</span>
+            <div className="mt-6 border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
+              <span className="text-[11px] font-semibold text-slate-400">Status</span>
+              <span className="font-bold text-slate-900">{m.status}</span>
             </div>
           </div>
         ))}
       </div>
 
       {/* Interactive What-If Congestion Simulator */}
-      <div className="rounded-2xl border border-[#e8e0d5] bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#f0ece7] pb-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-lg bg-[#2c2825] text-[#c8a97e]">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
               <Sliders className="size-4" />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-[#2c2825]">
+              <h3 className="text-base font-extrabold text-slate-900">
                 Multi-Model Congestion Prediction Simulator
               </h3>
-              <p className="text-xs text-[#9e9189]">
+              <p className="text-xs text-slate-500">
                 Adjust live parameters to test Linear Regression vs Gradient Boosting vs LSTM outputs
               </p>
             </div>
           </div>
 
           {/* Horizon Selector */}
-          <div className="flex items-center rounded-xl border border-[#e8e0d5] bg-[#f5f2ee] p-1 text-xs">
+          <div className="flex items-center rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs">
             {(['1h', '3h', '6h', '24h'] as const).map((h) => (
               <button
                 key={h}
                 type="button"
                 onClick={() => setSelectedHorizon(h)}
-                className={`rounded-lg px-3 py-1 font-bold uppercase transition-all ${
+                className={`rounded-lg px-3 py-1 font-bold uppercase transition-all cursor-pointer ${
                   selectedHorizon === h
-                    ? 'bg-[#2c2825] text-[#faf8f5] shadow-sm'
-                    : 'text-[#9e9189] hover:text-[#2c2825]'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
                 }`}
               >
                 {h} Horizon
@@ -260,14 +260,14 @@ export function AnalyticsPanel() {
 
         {/* Input Parameters Controls */}
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Target Corridor
             </label>
             <select
               value={selectedCorridor}
               onChange={(e) => setSelectedCorridor(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[#e8e0d5] bg-white p-2 text-xs font-bold text-[#2c2825] outline-none"
+              className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
             >
               <option value="MC Road Junction">MC Road Junction</option>
               <option value="Aluva-Munnar Highway">Aluva-Munnar Highway (NH 85)</option>
@@ -276,8 +276,8 @@ export function AnalyticsPanel() {
             </select>
           </div>
 
-          <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Time of Day: {timeHour}:00 ({timeHour >= 12 ? 'PM' : 'AM'})
             </label>
             <input
@@ -286,18 +286,18 @@ export function AnalyticsPanel() {
               max={23}
               value={timeHour}
               onChange={(e) => setTimeHour(Number(e.target.value))}
-              className="mt-2 w-full accent-[#2c2825]"
+              className="mt-2 w-full accent-emerald-600"
             />
           </div>
 
-          <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3.5">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Weather Impact
             </label>
             <select
               value={simWeather}
               onChange={(e) => setSimWeather(e.target.value as any)}
-              className="mt-1.5 w-full rounded-lg border border-[#e8e0d5] bg-white p-2 text-xs font-bold text-[#2c2825] outline-none"
+              className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white p-2 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500"
             >
               <option value="Clear">☀️ Clear Weather</option>
               <option value="Rainy">🌧️ Heavy Monsoon Rain (+4m)</option>
@@ -305,17 +305,17 @@ export function AnalyticsPanel() {
             </select>
           </div>
 
-          <div className="rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-3.5 flex flex-col justify-between">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-[#9e9189]">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 flex flex-col justify-between">
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Inject Event Feature
             </label>
             <button
               type="button"
               onClick={() => setSimEvent(!simEvent)}
-              className={`mt-1.5 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
+              className={`mt-1.5 flex items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all cursor-pointer ${
                 simEvent
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'border border-[#e8e0d5] bg-white text-[#2c2825] hover:bg-[#f5f2ee]'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
               }`}
             >
               <Sparkles className="size-3.5" />
@@ -325,12 +325,12 @@ export function AnalyticsPanel() {
         </div>
 
         {/* Live Multi-Model Predictions Output */}
-        <div className="mt-6 rounded-xl border border-[#e8e0d5] bg-[#faf8f5] p-5">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
           <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-extrabold text-[#2c2825] uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
               Simulated Forecast Delay ({selectedHorizon} Ahead)
             </span>
-            <span className="text-[11px] text-[#9e9189]">
+            <span className="text-[11px] text-slate-500">
               Corridor: <strong>{selectedCorridor}</strong>
             </span>
           </div>
@@ -345,18 +345,18 @@ export function AnalyticsPanel() {
                   key={m.name}
                   className={`rounded-xl border p-4 text-center transition-all ${
                     isWin
-                      ? 'border-2 border-[#a67c52] bg-white shadow-md'
-                      : 'border-[#e8e0d5] bg-white/70'
+                      ? 'border-2 border-emerald-600 bg-white shadow-md'
+                      : 'border-slate-200 bg-white/70'
                   }`}
                 >
-                  <span className="text-[11px] font-bold text-[#9e9189]">
+                  <span className="text-[11px] font-bold text-slate-400">
                     {m.name}
                   </span>
-                  <div className="mt-2 text-3xl font-black text-[#2c2825]">
+                  <div className="mt-2 text-3xl font-black text-slate-900">
                     +{predictedDelay}{' '}
-                    <span className="text-sm font-semibold text-[#9e9189]">min</span>
+                    <span className="text-sm font-semibold text-slate-400">min</span>
                   </div>
-                  <p className="mt-1 text-[10px] text-[#9e9189]">
+                  <p className="mt-1 text-[10px] text-slate-400">
                     Expected Speed: ~{Math.max(12, Math.round(48 - predictedDelay * 2.2))} km/h
                   </p>
                 </div>

@@ -107,12 +107,11 @@ export function AICopilotDrawer() {
       {/* Floating Co-Pilot Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-[#2c2825] px-5 py-3.5 text-sm font-bold text-[#c8a97e] shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-[#3a3531] border border-[#c8a97e]/30"
-        style={{ boxShadow: '0 8px 30px rgba(44,40,37,0.35)' }}
+        className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-full bg-emerald-600 px-5 py-3.5 text-sm font-bold text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-emerald-700 border border-emerald-500 cursor-pointer shadow-emerald-500/30"
       >
         <div className="relative flex size-5 items-center justify-center">
-          <span className="absolute size-5 animate-ping rounded-full bg-[#c8a97e] opacity-40" />
-          <Sparkles className="size-4 text-[#c8a97e]" />
+          <span className="absolute size-5 animate-ping rounded-full bg-white opacity-40" />
+          <Sparkles className="size-4 text-white" />
         </div>
         <span>AI Traffic Co-Pilot</span>
       </button>
@@ -121,39 +120,39 @@ export function AICopilotDrawer() {
       {isOpen && (
         <div
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm transition-opacity"
         />
       )}
 
       {/* Slide-over Drawer Panel */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-[#faf8f5] shadow-2xl border-l border-[#e8e0d5] flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-50 h-full w-full max-w-md bg-slate-50 shadow-2xl border-l border-slate-200 flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#e8e0d5] bg-white px-5 py-4">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-xl bg-[#2c2825] text-[#c8a97e]">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
               <Sparkles className="size-4" />
             </div>
             <div>
-              <h2 className="text-sm font-extrabold text-[#2c2825] tracking-tight">AI Traffic Co-Pilot</h2>
-              <p className="text-[11px] text-[#9e9189]">
-                {activeSector ? `Sector: ${activeSector.name || `${activeSector.lat.toFixed(4)}°, ${activeSector.lon.toFixed(4)}°`}` : 'Live 10km Grid Telemetry'}
+              <h2 className="text-sm font-extrabold text-slate-900 tracking-tight">AI Traffic Co-Pilot</h2>
+              <p className="text-[11px] text-slate-500">
+                {activeSector ? `Sector: ${activeSector.name || `${activeSector.lat.toFixed(4)}°, ${activeSector.lon.toFixed(4)}`}` : 'Live 10km Grid Telemetry'}
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="flex size-8 items-center justify-center rounded-lg text-[#9e9189] hover:bg-[#f5f2ee] hover:text-[#2c2825]"
+            className="flex size-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
           >
             <X className="size-4" />
           </button>
         </div>
 
         {/* Quick Suggestion Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-[#e8e0d5] bg-[#f5f2ee] px-4 py-2.5 scrollbar-none">
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-slate-100 bg-slate-100/70 px-4 py-2.5 scrollbar-none">
           {[
             { label: '📊 Live Telemetry', prompt: 'Show live speed and congestion telemetry for current sector' },
             { label: '🔮 15-Min Forecast', prompt: 'Predict 15-minute congestion and delay' },
@@ -163,7 +162,7 @@ export function AICopilotDrawer() {
             <button
               key={chip.label}
               onClick={() => handleSend(chip.prompt)}
-              className="flex-shrink-0 rounded-full border border-[#e8e0d5] bg-white px-3 py-1 text-[11px] font-bold text-[#6b625b] hover:bg-[#2c2825] hover:text-[#c8a97e] transition-colors"
+              className="flex-shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-bold text-slate-600 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white transition-colors cursor-pointer"
             >
               {chip.label}
             </button>
@@ -178,22 +177,22 @@ export function AICopilotDrawer() {
               className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               {m.role === 'assistant' && (
-                <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#2c2825] text-[#c8a97e] mt-1">
+                <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white mt-1 shadow-xs">
                   <Bot className="size-3.5" />
                 </div>
               )}
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
                 m.role === 'user'
-                  ? 'bg-[#2c2825] text-white rounded-tr-none'
-                  : 'bg-white border border-[#e8e0d5] text-[#2c2825] rounded-tl-none shadow-sm'
+                  ? 'bg-emerald-600 text-white rounded-tr-none shadow-xs'
+                  : 'bg-white border border-slate-200 text-slate-900 rounded-tl-none shadow-xs'
               }`}>
                 <div className="whitespace-pre-wrap font-sans">{m.content}</div>
-                <div className={`mt-1.5 text-[9px] ${m.role === 'user' ? 'text-[#c8a97e]' : 'text-[#9e9189]'}`}>
+                <div className={`mt-1.5 text-[9px] ${m.role === 'user' ? 'text-emerald-100' : 'text-slate-400'}`}>
                   {m.timestamp}
                 </div>
               </div>
               {m.role === 'user' && (
-                <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#a67c52] text-white mt-1">
+                <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-slate-800 text-white mt-1 shadow-xs">
                   <User className="size-3.5" />
                 </div>
               )}
@@ -201,11 +200,11 @@ export function AICopilotDrawer() {
           ))}
           {loading && (
             <div className="flex gap-3">
-              <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-[#2c2825] text-[#c8a97e]">
+              <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-white">
                 <Bot className="size-3.5" />
               </div>
-              <div className="rounded-2xl rounded-tl-none border border-[#e8e0d5] bg-white px-4 py-3 text-xs text-[#9e9189] flex items-center gap-2">
-                <Loader2 className="size-3.5 animate-spin text-[#a67c52]" />
+              <div className="rounded-2xl rounded-tl-none border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500 flex items-center gap-2">
+                <Loader2 className="size-3.5 animate-spin text-emerald-600" />
                 <span>Executing OpenAI tool call & analyzing telemetry...</span>
               </div>
             </div>
@@ -214,7 +213,7 @@ export function AICopilotDrawer() {
         </div>
 
         {/* Input Bar */}
-        <div className="border-t border-[#e8e0d5] bg-white p-3">
+        <div className="border-t border-slate-100 bg-white p-3">
           <form
             onSubmit={e => {
               e.preventDefault()
@@ -226,13 +225,13 @@ export function AICopilotDrawer() {
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Ask AI Co-Pilot about traffic, forecasts, SOPs..."
-              className="flex-1 rounded-xl border border-[#e8e0d5] bg-[#faf8f5] px-3.5 py-2.5 text-xs text-[#2c2825] outline-none focus:border-[#2c2825]"
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
               disabled={loading}
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="flex size-9 items-center justify-center rounded-xl bg-[#2c2825] text-[#c8a97e] transition-opacity disabled:opacity-40"
+              className="flex size-9 items-center justify-center rounded-xl bg-emerald-600 text-white transition-opacity disabled:opacity-40 hover:bg-emerald-700 cursor-pointer shadow-xs"
             >
               <Send className="size-4" />
             </button>

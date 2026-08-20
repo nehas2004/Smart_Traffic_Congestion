@@ -60,14 +60,17 @@ let _cachedParams: {
 } | null = null
 
 const BOTTLENECK_LOCATIONS = [
-  { name: 'MC Road Junction (Kothamangalam)', lat: 10.0601, lon: 76.6214, delay: 14, severity: 'Severe', intensity: 0.95 },
-  { name: 'Aluva-Munnar Highway (NH 85)', lat: 10.0650, lon: 76.6280, delay: 9, severity: 'Heavy', intensity: 0.8 },
-  { name: 'Market Feeder & College Road', lat: 10.0620, lon: 76.6220, delay: 6, severity: 'Moderate', intensity: 0.6 },
-  { name: 'Kaloor Junction', lat: 10.0126, lon: 76.3084, delay: 12, severity: 'Severe', intensity: 0.92 },
-  { name: 'Edapally Toll', lat: 10.0228, lon: 76.3083, delay: 8, severity: 'Heavy', intensity: 0.75 },
-  { name: 'Vyttila Mobility Hub', lat: 9.9717, lon: 76.3106, delay: 5, severity: 'Moderate', intensity: 0.55 },
-  { name: 'Thrissur Round', lat: 10.5248, lon: 76.2130, delay: 15, severity: 'Severe', intensity: 0.98 },
-  { name: 'Pattom Junction', lat: 8.5245, lon: 76.9360, delay: 11, severity: 'Severe', intensity: 0.88 },
+  { name: 'MC Road Junction (Kothamangalam)', lat: 10.0601, lon: 76.6214, delay: 6, severity: 'Heavy', intensity: 0.85 },
+  { name: 'Aluva-Munnar Highway (NH 85)', lat: 10.0650, lon: 76.6280, delay: 5, severity: 'Moderate', intensity: 0.7 },
+  { name: 'Market Feeder & College Road', lat: 10.0620, lon: 76.6220, delay: 3, severity: 'Moderate', intensity: 0.55 },
+  { name: 'Perumbavoor Town Junction', lat: 10.1132, lon: 76.4756, delay: 5, severity: 'Heavy', intensity: 0.8 },
+  { name: 'Muvattupuzha Bridge / Junction', lat: 9.9884, lon: 76.5786, delay: 4, severity: 'Moderate', intensity: 0.7 },
+  { name: 'Kaloor Junction', lat: 10.0126, lon: 76.3084, delay: 6, severity: 'Heavy', intensity: 0.85 },
+  { name: 'Edapally Toll & Bypass', lat: 10.0228, lon: 76.3083, delay: 4, severity: 'Moderate', intensity: 0.65 },
+  { name: 'Vyttila Mobility Hub', lat: 9.9717, lon: 76.3106, delay: 3, severity: 'Moderate', intensity: 0.5 },
+  { name: 'Kakkanad Infopark Expressway', lat: 10.0104, lon: 76.3606, delay: 3, severity: 'Moderate', intensity: 0.55 },
+  { name: 'Thrissur Round', lat: 10.5248, lon: 76.2130, delay: 7, severity: 'Heavy', intensity: 0.9 },
+  { name: 'Pattom Junction', lat: 8.5245, lon: 76.9360, delay: 5, severity: 'Moderate', intensity: 0.75 },
 ]
 
 function getDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -91,8 +94,8 @@ function getHotspotsForRoute(route: any) {
 
   // 1. Extract live traffic delay sections from TomTom route payload
   sections.forEach((sec: any) => {
-    if (sec.sectionType === 'TRAFFIC' || sec.simpleCategory === 'JAM' || sec.delayInSeconds > 60) {
-      const delayMin = Math.round((sec.delayInSeconds || 120) / 60)
+    if (sec.sectionType === 'TRAFFIC' || sec.simpleCategory === 'JAM' || (sec.delayInSeconds && sec.delayInSeconds > 60)) {
+      const delayMin = Math.max(2, Math.round((sec.delayInSeconds || 120) / 60))
       const startIdx = sec.startPointIndex || 0
       const endIdx = Math.min(points.length - 1, sec.endPointIndex || points.length - 1)
       const secPoints = points.slice(startIdx, endIdx + 1)
@@ -110,7 +113,7 @@ function getHotspotsForRoute(route: any) {
     }
   })
 
-  // 2. Cross-reference known corridor junctions with strict 350m proximity
+  // 2. Cross-reference known corridor junctions with 1200m proximity along route
   if (points.length > 0) {
     BOTTLENECK_LOCATIONS.forEach((bn) => {
       let closestPt: { latitude: number; longitude: number } | null = null
@@ -125,8 +128,7 @@ function getHotspotsForRoute(route: any) {
         }
       }
 
-      // Strictly must pass within 350 meters of the bottleneck junction
-      if (minDistance < 350 && closestPt) {
+      if (minDistance < 1200 && closestPt) {
         if (!hotspots.some((h) => h.name.includes(bn.name))) {
           hotspots.push({
             name: bn.name,
@@ -145,10 +147,17 @@ function getHotspotsForRoute(route: any) {
 }
 
 function CongestionBadge({ speed, delay, freeFlowSpeed }: { speed: number; delay?: number; freeFlowSpeed?: number }) {
-  if (delay && delay >= 8) {
+  if (delay && delay >= 20) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80">
-        <AlertTriangle size={12} className="text-rose-600" /> Severe Traffic (+{delay}m)
+        <AlertTriangle size={12} className="text-rose-600" /> Severe Congestion (+{delay}m)
+      </span>
+    )
+  }
+  if (delay && delay >= 8) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200/80">
+        <AlertTriangle size={12} className="text-orange-600" /> Heavy Delays (+{delay}m)
       </span>
     )
   }
@@ -468,7 +477,7 @@ function RoutesContent() {
         const rs = combinedRoutes.length > 0 ? combinedRoutes.slice(0, 4) : []
         setRoutes(rs)
 
-        // Query ML predictions (Linear Regression, Gradient Boosting, LSTM with Open-Meteo & TomTom 27 features)
+        // Query ML predictions across sampled points (origin, mid-corridor, destination)
         const mlForecasts = await Promise.all(
           rs.map(async (r: any) => {
             const rawPts = r.legs?.[0]?.points || []
@@ -486,52 +495,58 @@ function RoutesContent() {
           rs.map((r: any, idx: number) => {
             const summary = r.summary || {}
             const travelTimeSec = summary.travelTimeInSeconds || 1
-            const noTrafficSec =
-              summary.noTrafficTravelTimeInSeconds ||
-              summary.historicTrafficTravelTimeInSeconds ||
-              travelTimeSec
-            const trafficDelaySec =
-              summary.trafficDelayInSeconds ?? Math.max(0, travelTimeSec - noTrafficSec)
+            const travelTimeMins = Math.round(travelTimeSec / 60)
             const distKm = (summary.lengthInMeters || 0) / 1000
 
-            const liveDelayMins = Math.round(trafficDelaySec / 60)
+            // Standard regional corridor free flow baseline: 36 km/h (standard mixed state highway cruising speed)
+            const freeFlowSpeed = 36
+            const freeFlowTimeMins = Math.max(1, Math.round((distKm / freeFlowSpeed) * 60))
+            const speedKmh = travelTimeSec > 0 ? Math.max(15, Math.round(distKm / (travelTimeSec / 3600))) : freeFlowSpeed
+
+            // Calculate realistic congestion delay
+            const speedDropDelayMins = Math.max(0, travelTimeMins - freeFlowTimeMins)
+            const tomtomDelayMins = Math.round((summary.trafficDelayInSeconds || 0) / 60)
             const hotspots = getHotspotsForRoute(r)
             const hotspotDelaySum = hotspots.reduce((acc, h) => acc + h.delay, 0)
             
             const mlItem = mlForecasts[idx]
             const mlDelaySec = mlItem?.projected_delay_sec || 0
-            const mlDelayMins = Math.round(mlDelaySec / 60)
+            const mlDelayMins = Math.max(0, Math.round(mlDelaySec / 60))
 
-            const finalDelay = Math.max(liveDelayMins, hotspotDelaySum, mlDelayMins)
+            // Realistic weighted delay combining TomTom, speed drops, hotspots, and ML model
+            let finalDelay = tomtomDelayMins > 0 ? tomtomDelayMins : speedDropDelayMins
+            if (finalDelay === 0 && hotspotDelaySum > 0) {
+              finalDelay = Math.min(hotspotDelaySum, 18)
+            } else if (finalDelay > 0) {
+              finalDelay = Math.min(finalDelay, Math.max(8, hotspotDelaySum + mlDelayMins))
+            }
+            // Clamp to a natural, realistic delay window (e.g. 8 - 26 mins)
+            finalDelay = Math.max(4, Math.min(finalDelay, 26))
 
-            const freeFlowSpeed = noTrafficSec > 0 ? Math.round(distKm / (noTrafficSec / 3600)) : 45
-            let speedKmh = travelTimeSec > 0 ? Math.round(distKm / (travelTimeSec / 3600)) : freeFlowSpeed
-            if (speedKmh <= 0) speedKmh = freeFlowSpeed
-
-            // Synthesize segment breakdown
-            let fastP = 85
-            let modP = 15
-            let slowP = 0
+            // Synthesize segment breakdown matching actual route conditions
+            let fastP = 65
+            let modP = 25
+            let slowP = 10
             let heavyP = 0
 
-            if (finalDelay >= 12) {
-              fastP = 35
-              modP = 25
-              slowP = 20
-              heavyP = 20
-            } else if (finalDelay >= 6) {
-              fastP = 50
+            if (finalDelay >= 22 || speedKmh < 24) {
+              fastP = 40
               modP = 30
               slowP = 20
-              heavyP = 0
-            } else if (finalDelay >= 2) {
-              fastP = 70
+              heavyP = 10
+            } else if (finalDelay >= 14 || speedKmh < 32) {
+              fastP = 55
               modP = 25
-              slowP = 5
+              slowP = 15
+              heavyP = 5
+            } else if (finalDelay >= 6) {
+              fastP = 70
+              modP = 20
+              slowP = 10
               heavyP = 0
             } else {
-              fastP = 95
-              modP = 5
+              fastP = 85
+              modP = 15
               slowP = 0
               heavyP = 0
             }
@@ -561,7 +576,6 @@ function RoutesContent() {
     (L: any, map: any) => {
       if (!L || !map) return
 
-      // Invalidate size in case container rendered or resized
       try {
         map.invalidateSize()
       } catch (_) {}
@@ -614,32 +628,32 @@ function RoutesContent() {
         const rawPoints = route?.legs?.[0]?.points || []
         if (rawPoints.length < 2) return
 
-        const pts = rawPoints.map((p: any) => [p.latitude, p.longitude] as [number, number])
-        pts.forEach((pt) => allRouteLatLngs.push(pt))
+        const pts: [number, number][] = rawPoints.map((p: any) => [p.latitude, p.longitude] as [number, number])
+        pts.forEach((pt: [number, number]) => allRouteLatLngs.push(pt))
 
         const fc = forecasts[idx]
         const delay = fc?.delay || 0
         const sections = route.sections || route.legs?.[0]?.sections || []
 
-        // Background glow / base polyline
+        // Ambient background glow for active route or subtle outline for unselected routes
         if (isSelected) {
           const glow = L.polyline(pts, {
-            color: '#6366f1',
-            weight: 16,
-            opacity: 0.45,
+            color: '#4f46e5',
+            weight: 15,
+            opacity: 0.35,
             lineCap: 'round',
             lineJoin: 'round',
           }).addTo(map)
           polylinesRef.current.push(glow)
         } else {
-          const altBase = L.polyline(pts, {
-            color: '#0f172a',
-            weight: 8,
-            opacity: 0.65,
+          const altOutline = L.polyline(pts, {
+            color: '#334155',
+            weight: 7,
+            opacity: 0.4,
             lineCap: 'round',
             lineJoin: 'round',
           }).addTo(map)
-          polylinesRef.current.push(altBase)
+          polylinesRef.current.push(altOutline)
         }
 
         // 1. Build precise traffic condition array for all vertices along this route
@@ -732,6 +746,11 @@ function RoutesContent() {
                   pointConditions[targetI] = 'moderate'
                 }
               }
+              segments.push({
+                chunk: pts.slice(startIdx, endIdx + 1),
+                condition: cond,
+                speedKmh: spd,
+              })
             }
           }
         }
@@ -767,6 +786,31 @@ function RoutesContent() {
           }
         }
 
+        // Draw each colored segment on the map
+        segments.forEach((seg, sIdx) => {
+          if (seg.chunk.length < 2) return
+
+          const segColor = getColorForCondition(seg.condition)
+          const segLine = L.polyline(seg.chunk, {
+            color: segColor,
+            weight: isSelected ? 8.5 : 5,
+            opacity: isSelected ? 1.0 : 0.85,
+            dashArray: isSelected ? undefined : '7, 6',
+            lineCap: 'round',
+            lineJoin: 'round',
+          }).addTo(map)
+
+          segLine.on('click', () => setSelectedRouteIdx(idx))
+          segLine.bindTooltip(
+            `<div style="font-family:system-ui; padding:3px;">
+              <strong style="color:#0f172a;">Route ${idx + 1} (${seg.condition.toUpperCase()})</strong><br/>
+              <span style="font-size:11px; color:#475569;">Speed: ~${seg.speedKmh} km/h · Condition: ${seg.condition}</span>
+            </div>`,
+            { sticky: true }
+          )
+          polylinesRef.current.push(segLine)
+        })
+
         // Invisible broader hover/click polyline across full route
         const interactiveCover = L.polyline(pts, {
           color: 'transparent',
@@ -778,7 +822,7 @@ function RoutesContent() {
         interactiveCover.bindTooltip(
           `<div style="font-family:system-ui; padding:3px;">
             <strong style="color:#0f172a;">Route ${idx + 1} ${idx === 0 ? '(Recommended)' : '(Alternate Corridor)'}</strong><br/>
-            <span style="font-size:12px; color:#475569;">Duration: ${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)} min · ${((route.summary?.lengthInMeters || 0) / 1000).toFixed(1)} km</span><br/>
+            <span style="font-size:12px; color:#475569;">Duration: ${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)} min (${delay > 0 ? `+${delay}m delay` : 'On Time'}) · ${((route.summary?.lengthInMeters || 0) / 1000).toFixed(1)} km</span><br/>
             <span style="font-size:11px; color:#6366f1; font-weight:700;">${isSelected ? '✓ Active Route' : '👉 Click to switch to this route'}</span>
           </div>`,
           { sticky: true }
@@ -802,7 +846,7 @@ function RoutesContent() {
                 border: 2px solid ${isSelected ? '#ffffff' : '#94a3b8'};
                 box-shadow: 0 4px 10px rgba(0,0,0,0.2); white-space: nowrap; cursor: pointer;
               ">
-                Route ${idx + 1} ${isRec ? '★' : ''} (${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)}m)
+                Route ${idx + 1} ${isRec ? '★' : ''} (${Math.round((route.summary?.travelTimeInSeconds || 0) / 60)}m${delay > 0 ? ` · +${delay}m` : ''})
               </div>
             `,
             className: '',
@@ -1465,13 +1509,48 @@ function RoutesContent() {
                   Suggested Routes ({routes.length})
                 </h1>
                 <p className="text-xs text-slate-500 font-medium">
-                  {departureMode !== 'now' ? departureLabel : 'All routes rendered on map · Click any route to switch'}
+                  {departureMode !== 'now' ? departureLabel : 'Click any route tab or card to view on map'}
                 </p>
               </div>
               <span className="text-[11px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg">
                 {routes.length} Active Corridors
               </span>
             </div>
+
+            {/* Quick Route Selector Tab Bar (All 4 Corridors visible at a glance) */}
+            {!loading && routes.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {routes.map((r, i) => {
+                  const fc = forecasts[i]
+                  const eta = Math.round((r.summary?.travelTimeInSeconds || 0) / 60)
+                  const isSel = selectedRouteIdx === i
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setSelectedRouteIdx(i)}
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-start gap-0.5 cursor-pointer border text-left ${
+                        isSel
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md ring-2 ring-indigo-500/20'
+                          : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-xs'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className="text-[11px] uppercase tracking-wider">{i === 0 ? '★ Route 1' : `Route ${i + 1}`}</span>
+                        {fc?.delay && fc.delay > 0 ? (
+                          <span className={`text-[10px] font-extrabold px-1 rounded ${
+                            isSel ? 'bg-white/20 text-white' : 'bg-rose-50 text-rose-600'
+                          }`}>
+                            +{fc.delay}m
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className={`text-sm font-black ${isSel ? 'text-white' : 'text-slate-900'}`}>{eta} min</span>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
 
             {loading && (
               <div className="text-center py-16 text-slate-500 bg-white rounded-3xl border border-slate-200/80 p-6">
@@ -1504,15 +1583,51 @@ function RoutesContent() {
                 const seg = fc?.segmentProportions || { fast: 70, moderate: 20, slow: 10, heavy: 0 }
                 const delayVal = fc?.delay || 0
 
+                // ── COMPACT ACCORDION VIEW FOR UNSELECTED ROUTES ──
+                if (!isSelected) {
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedRouteIdx(idx)}
+                      className="bg-white rounded-2xl p-4 cursor-pointer transition-all duration-200 border border-slate-200/90 shadow-xs hover:border-indigo-300 hover:shadow-sm flex items-center justify-between gap-4 group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                            Route {idx + 1}
+                          </span>
+                          {isTopRoute ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                              ★ Recommended
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600">
+                              Alternate
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xl font-black text-slate-900 leading-none">{etaMins} min</span>
+                          <span className="text-xs text-slate-500 font-semibold">{distKm} km · ₹{fuelEst} fuel</span>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
+                        <span className="text-[11px] font-bold text-indigo-600 group-hover:underline flex items-center gap-1">
+                          Select Route →
+                        </span>
+                      </div>
+                    </div>
+                  )
+                }
+
+                // ── EXPANDED ACTIVE ROUTE CARD ──
                 return (
                   <div
                     key={idx}
                     onClick={() => setSelectedRouteIdx(idx)}
-                    className={`bg-white rounded-2xl p-5 cursor-pointer transition-all duration-200 border relative ${
-                      isSelected
-                        ? 'border-indigo-500 shadow-md ring-2 ring-indigo-500/20'
-                        : 'border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm'
-                    }`}
+                    className="bg-white rounded-2xl p-5 cursor-pointer transition-all duration-200 border border-indigo-500 shadow-md ring-2 ring-indigo-500/20 relative animate-in fade-in-50 duration-150"
                   >
                     {/* Header with Title & Recommended / Alternate Badge */}
                     <div className="flex items-start justify-between gap-2">
@@ -1529,11 +1644,9 @@ function RoutesContent() {
                             Alternate Corridor
                           </span>
                         )}
-                        {isSelected && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-600 text-white shadow-xs">
-                            Active
-                          </span>
-                        )}
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-indigo-600 text-white shadow-xs">
+                          Active Selection
+                        </span>
                       </div>
 
                       <CongestionBadge speed={fc?.predictedSpeed || FREE_FLOW} delay={fc?.delay} freeFlowSpeed={fc?.freeFlowSpeed} />
@@ -1616,14 +1729,14 @@ function RoutesContent() {
                     {/* ML Congestion Forecast Breakdown */}
                     <div className="bg-slate-50 rounded-xl p-3 mt-3 border border-slate-100">
                       <div className="flex justify-between items-center text-xs mb-1.5">
-                        <span className="text-slate-500 font-medium">Predicted Segment Speed</span>
+                        <span className="text-slate-500 font-medium">Predicted Corridor Speed</span>
                         <span className="font-bold text-slate-900">
                           {Math.round(fc?.predictedSpeed || FREE_FLOW)} km/h
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-slate-500 font-medium">Traffic Bottleneck Delay</span>
-                        <span className={`font-bold ${delayVal > 3 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        <span className={`font-bold ${delayVal > 8 ? 'text-rose-600' : 'text-amber-600'}`}>
                           +{delayVal} min
                         </span>
                       </div>
@@ -1643,7 +1756,7 @@ function RoutesContent() {
                                 <span className="font-semibold text-slate-800 truncate max-w-[220px]">
                                   ⚠️ {hs.name}
                                 </span>
-                                <span className={`font-bold ${hs.severity === 'Severe' ? 'text-rose-600' : 'text-amber-600'}`}>
+                                <span className={`font-bold ${hs.severity === 'Severe' || hs.severity === 'Heavy' ? 'text-rose-600' : 'text-amber-600'}`}>
                                   +{hs.delay}m
                                 </span>
                               </div>
@@ -1705,27 +1818,6 @@ function RoutesContent() {
                   }`}
                 >
                   <Flame size={13} className="text-amber-400" /> Heatmap
-                </button>
-              </div>
-
-              {/* View Controls: View All Routes & Focus Active Route */}
-              <div className="flex items-center gap-2 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={handleFitAllRoutes}
-                  className="bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-xl px-3 py-2 flex items-center gap-1.5 text-xs font-bold text-slate-800 shadow-md hover:bg-white transition-all cursor-pointer"
-                >
-                  <Layers size={13} className="text-indigo-600" />
-                  <span>View All Routes</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleFitRoute}
-                  className="bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-xl px-3.5 py-2 flex items-center gap-1.5 text-xs font-bold text-slate-800 shadow-md hover:bg-white transition-all cursor-pointer"
-                >
-                  <Maximize2 size={13} className="text-indigo-600" />
-                  <span>Focus Active</span>
                 </button>
               </div>
             </div>

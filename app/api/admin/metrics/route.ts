@@ -76,18 +76,19 @@ export async function GET(req: Request) {
               delayMins,
               severity,
               confidence: flow.confidence || 0.94,
-              isCritical: severity === 'severe' || severity === 'critical',
+              isCritical: severity === 'severe',
             }
           }
         } catch (_) {}
 
         // Deterministic fallback based on time of day
-        const simCongestion = isPeakHour ? 48 + (ptLat * 10) % 15 : 32 + (ptLat * 10) % 12
+        const simCongestion = isPeakHour ? 48 + (pt.lat * 10) % 15 : 32 + (pt.lat * 10) % 12
+        const sev: SeverityLevel = isPeakHour ? 'heavy' : 'moderate'
         return {
           name: resolvedName,
           congestionPct: Math.round(simCongestion),
           delayMins: isPeakHour ? 6 : 3,
-          severity: isPeakHour ? 'heavy' : 'moderate',
+          severity: sev,
           confidence: 0.92,
           isCritical: false,
         }

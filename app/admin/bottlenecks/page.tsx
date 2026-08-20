@@ -78,8 +78,8 @@ export default function AdminBottlenecksPage() {
             >
               <ArrowLeft className="size-3.5" /> Overview
             </Link>
-            <span className="text-xs text-[#e8e0d5]">/</span>
-            <span className="text-xs font-bold text-[#a67c52]">Bottlenecks Surveillance</span>
+            <span className="text-xs text-slate-300">/</span>
+            <span className="text-xs font-bold text-emerald-700">Bottlenecks Surveillance</span>
           </div>
           <div className="flex flex-wrap items-center gap-2.5 mt-1">
             <h1 className="text-2xl font-black tracking-tight text-[#2c2825]">
@@ -101,7 +101,7 @@ export default function AdminBottlenecksPage() {
           disabled={loading}
           className="flex items-center gap-1.5 rounded-xl border border-[#e8e0d5] bg-white px-3.5 py-2 text-xs font-bold text-[#2c2825] shadow-xs hover:bg-[#faf8f5] cursor-pointer"
         >
-          <RefreshCw className={`size-3.5 text-[#a67c52] ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`size-3.5 text-emerald-600 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
@@ -117,7 +117,7 @@ export default function AdminBottlenecksPage() {
 
         {/* Selected Corridor Location Intel Panel */}
         <div className="space-y-3">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#2c2825]">
+          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
             Selected Corridor Intelligence
           </h3>
           <LocationIntelPanel
